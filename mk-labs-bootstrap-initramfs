@@ -1,0 +1,238 @@
+#!/bin/bash
+
+VERSION="0.9.9.4"
+WORK_DIR="work_dir"
+KEYMAP="/usr/share/keymaps/i386/qwerty/pt-latin1.map.gz"
+TIMEZONE="Europe/Lisbon"
+SCRIPT_URL="http://geminio.rnl.tecnico.ulisboa.pt/do.sh"
+NTP_SERVER="ntp.rnl.tecnico.ulisboa.pt"
+
+CYAN="\e[0;36m"
+RED="\e[1;31m"
+YELLOW="\e[0;33m"
+GRAY="\e[0;90m"
+NORMAL="\e[0m"
+
+function info() {
+	echo -e $CYAN"$1"$NORMAL
+}
+
+function warning() {
+	echo -e $RED"$1"$NORMAL
+}
+
+function quote_output() {
+	while read line; do
+		echo -e "  $GRAY$line$NORMAL"
+	done
+}
+
+function add_linked_libs() {
+	local lib bin="${1}"
+	for lib in $(ldd $bin | awk '/lib64/{print $(NF-1)}'); do
+		lib="${ROOT}${lib}"
+		if [ ! -f lib64/$(basename $lib) ]; then
+			echo "  $lib"
+			cp "${lib}" lib64/
+			#add_linked_libs $lib
+		fi
+	done
+}
+
+function add_libs() {
+	local lib
+	for lib in "$@"; do
+		lib="${ROOT}${lib}"
+
+		if [ ! -e $lib ]; then
+			warning "$lib not found on the current system, aborting."
+			exit
+		fi
+
+		info "Adding library $lib"
+		cp "${lib}" lib64/
+		add_linked_libs $lib
+	done
+}
+
+function add_exe() {
+	local exe
+	for exe in "$@"; do
+		exe="${ROOT}${exe}"
+
+		if [ ! -e $exe ]; then
+			warning "$exe not found on the current system, aborting."
+			exit
+		fi
+
+		if [[ "$(ldd "${exe}")" = *"not a dynamic executable"* ]]; then
+			info "Adding static executable ${exe}."
+		else
+			info "Adding dynamic executable ${exe}, including libs:"
+			add_linked_libs $exe
+		fi
+
+		cp "${exe}" bin/
+	done
+}
+
+if [[ $EUID -ne 0 ]]; then
+	echo "This script must be run as root"
+	exit
+fi
+
+if [ -z "$1" ]; then
+	echo "Usage: $0 <generated initramfs file>"
+	exit
+fi
+
+DESTINATION="$(realpath $1)"
+
+# Change to a clean work directory
+mkdir -p "$WORK_DIR"
+cd "$WORK_DIR"
+rm -rf *
+
+# Setup minimal system
+mkdir -p bin sbin dev etc proc sys run lib64 mnt
+#cp -a /dev/{null,console,tty} dev/
+add_exe /bin/busybox
+
+# busybox dhcp client helper script
+mkdir -p usr/share/udhcpc
+cp /usr/share/udhcpc/default.script usr/share/udhcpc/
+
+add_exe /usr/sbin/sshd
+
+# transmission -> torrents
+add_exe /usr/bin/transmission-{daemon,remote}
+
+# Needed for HTTPS downloads
+add_exe /usr/bin/wget
+# TODO: copy CA certificate
+
+#add_exe /usr/bin/strace # For debug
+
+# Libs to allow DNS resolving that ldd does not
+# show because libc loads them on-the-fly
+add_libs /lib64/libnss_{dns,files}.so.2
+
+info "Setting root user and password."
+echo "root:x:0:0:root:/root:/bin/sh" > etc/passwd
+hashed_password=$(openssl passwd -1 -salt "salt" "password")
+echo "root:$hashed_password:0:0:::::" > etc/shadow
+
+# Needed to accept ssh connections
+info "Copying ssh keys."
+mkdir -p root/.ssh etc/dropbear
+cat /root/.ssh/id_rsa.pub > root/.ssh/authorized_keys
+# TODO: copy host keys
+
+# Copy keymap
+if [ -e $KEYMAP ]; then
+	info "Setting default keymap to $(basename $KEYMAP .map.gz)."
+	loadkeys -b $KEYMAP > keymap.map
+else
+	warning "Cannot find $KEYMAP, **not setting default keymap**."
+fi
+
+# Copy timezone files
+info "Setting timezone to $TIMEZONE."
+cp "/usr/share/zoneinfo/$TIMEZONE" etc/localtime
+echo "$TIMEZONE" > etc/timezone
+
+cat << EOF  > init
+#!/bin/busybox sh
+
+NORMAL="\e[0m"
+CYAN="\e[0;36m"
+RED="\e[1;31m"
+GREEN="\e[32m"
+
+rescue_shell() {
+    setsid cttyhack sh
+}
+
+info() {
+    echo -e "\${CYAN} * \${1}\${NORMAL}"
+}
+
+error() {
+    echo -e "  \${RED}\${1}\${NORMAL}"
+}
+
+header() {
+    echo -e "\n\${GREEN}   \${1}\${NORMAL}\n"
+}
+
+# Create symlinks to all commands
+/bin/busybox --install -s
+
+# Mount /proc
+mount -t proc none /proc
+
+# Disable kernel spam to console
+echo 1 > /proc/sys/kernel/printk
+
+# Mount /sys and company
+mount -t sysfs none /sys
+mount -t devtmpfs none /dev
+
+# Needed for ssh to function
+mkdir /dev/pts
+mount -t devpts devpts /dev/pts
+
+hostname rnl-bootstrap
+
+# Load PT keymap
+loadkmap < keymap.map
+
+# Needed to connect to localhost
+ip link set lo up
+
+# Set TTL to distinguish between this initramfs and other OS
+echo 23 > /proc/sys/net/ipv4/ip_default_ttl
+
+header "RNL bootstrap initramfs ${VERSION} - \$(uname -sr)"
+
+info "Starting DHCP client"
+udhcpc 2>/dev/null | grep "\(Lease\|Adding\)"
+
+info "Starting SSH server"
+/bin/sshd
+
+info "Starting NTP client"
+ntpd -q -p "${NTP_SERVER}"
+
+info "Starting Transmission"
+mkdir /torrents /downloads
+transmission-daemon --no-dht --logfile /transmission.log --watch-dir /torrents --download-dir /downloads
+
+args="\$(cat /proc/cmdline | sed 's/ /\&/g')"
+
+info "Downloading ${SCRIPT_URL}?\${args}"
+/bin/wget --no-verbose "${SCRIPT_URL}?\${args}" -O do.sh
+
+info "Executing script"
+source do.sh
+
+while :; do
+    echo
+    setsid cttyhack login
+done
+
+EOF
+
+chmod +x init
+
+info "Creating initramfs archive on $DESTINATION"
+(find . -print0 | cpio --null -ov --format=newc | gzip -9 > "$DESTINATION") 2>&1 | quote_output
+info "Done"
+
+compressed_size=$(ls -lh "$DESTINATION" | awk '{print $5}')
+full_size=$(du -sh . | awk '{print $1}')
+file_number=$(find . -type f | wc -l)
+
+echo "  Compressed size: $compressed_size"
+echo "  Uncompressed size: $full_size"
+echo "  File number: $file_number"
