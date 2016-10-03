@@ -1,0 +1,14 @@
+#!/bin/sh
+
+DIR=gentoo-chroot
+
+mount -t proc /proc "$DIR/proc"
+mount -o bind /dev "$DIR/dev"
+mount -o bind /sys "$DIR/sys"
+
+export PS1="(gentoo chroot) \w $ "
+chroot $DIR /bin/sh
+
+umount -f "$DIR/proc"
+umount -f "$DIR/dev"
+umount -f "$DIR/sys"
