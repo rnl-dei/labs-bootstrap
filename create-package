@@ -9,7 +9,7 @@ fi
 
 FILE="$(basename $EXE).tar.gz"
 
-./mk-labs-bootstrap-initramfs \
+./mk-labs-bootstrap \
 	--package \
 	--chroot /root/labs-bootstrap/gentoo-chroot \
 	--exe "$EXE" \

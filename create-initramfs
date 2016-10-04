@@ -2,7 +2,7 @@
 
 FILE=labs-bootstrap-initramfs
 
-./mk-labs-bootstrap-initramfs \
+./mk-labs-bootstrap \
 	--initramfs \
 	--chroot /root/labs-bootstrap/gentoo-chroot \
 	--ssh-config ~/rnlinux/roles/ssh/files/etc/ssh/sshd_config \
