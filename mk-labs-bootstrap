@@ -1,7 +1,7 @@
 #!/bin/bash
 
-VERSION="0.9.9.4"
-WORK_DIR="work_dir"
+VERSION="0.9.9.6"
+WORK_DIR="/tmp/labs-bootstrap"
 KEYMAP="/usr/share/keymaps/i386/qwerty/pt-latin1.map.gz"
 TIMEZONE="Europe/Lisbon"
 SCRIPT_URL="http://geminio.rnl.tecnico.ulisboa.pt/do.sh"
@@ -11,14 +11,19 @@ CYAN="\e[0;36m"
 RED="\e[1;31m"
 YELLOW="\e[0;33m"
 GRAY="\e[0;90m"
+GREEN="\e[32m"
 NORMAL="\e[0m"
 
 function info() {
-	echo -e $CYAN"$1"$NORMAL
+	echo -e $CYAN"$@"$NORMAL
+}
+
+function header() {
+	echo -e $GREEN"$@"$NORMAL
 }
 
 function warning() {
-	echo -e $RED"$1"$NORMAL
+	echo -e $RED"$@"$NORMAL
 }
 
 function quote_output() {
@@ -30,11 +35,10 @@ function quote_output() {
 function add_linked_libs() {
 	local lib bin="${1}"
 	for lib in $(ldd $bin | awk '/lib64/{print $(NF-1)}'); do
-		lib="${ROOT}${lib}"
+		lib="${lib}"
 		if [ ! -f lib64/$(basename $lib) ]; then
 			echo "  $lib"
 			cp "${lib}" lib64/
-			#add_linked_libs $lib
 		fi
 	done
 }
@@ -42,7 +46,7 @@ function add_linked_libs() {
 function add_libs() {
 	local lib
 	for lib in "$@"; do
-		lib="${ROOT}${lib}"
+		lib="${lib}"
 
 		if [ ! -e $lib ]; then
 			warning "$lib not found on the current system, aborting."
@@ -58,7 +62,7 @@ function add_libs() {
 function add_exe() {
 	local exe
 	for exe in "$@"; do
-		exe="${ROOT}${exe}"
+		exe="${exe}"
 
 		if [ ! -e $exe ]; then
 			warning "$exe not found on the current system, aborting."
@@ -76,70 +80,227 @@ function add_exe() {
 	done
 }
 
+function show_stats() {
+	compressed_size=$(ls -lh "$DESTINATION" | awk '{print $5}')
+	full_size=$(du -sh . | awk '{print $1}')
+	file_number=$(find . -type f | wc -l)
+	echo "  Compressed size: $compressed_size"
+	echo "  Uncompressed size: $full_size"
+	echo "  File number: $file_number"
+}
+
 if [[ $EUID -ne 0 ]]; then
 	echo "This script must be run as root"
 	exit
 fi
 
-if [ -z "$1" ]; then
-	echo "Usage: $0 <generated initramfs file>"
+
+args="$@"
+
+PKG_EXECUTABLES=()
+
+while (( "$#" )); do
+	case "$1" in
+		"--chroot")
+			CHROOT=$2
+			shift
+			;;
+		"--inside-chroot")
+			INSIDE_CHROOT=1
+			;;
+		"--ssh-config")
+			SSH_CONFIG=$2
+			shift
+			;;
+		"--ssh-host-keys-dir")
+			SSH_HOST_KEYS_DIR=$2
+			shift
+			;;
+		"--ssh-authorized-keys")
+			SSH_AUTHORIZED_KEYS=$2
+			shift
+			;;
+		"--dest")
+			DESTINATION="$(realpath $2)"
+			shift
+			;;
+		"--exe")
+			PKG_EXECUTABLES+=($2)
+			shift
+			;;
+		"--initramfs")
+			ACTION=initramfs
+			;;
+		"--package")
+			ACTION=package
+			;;
+		*)
+			warning "Unknown option '$1'"
+			exit
+			;;
+	esac
+	shift
+done
+
+case "$ACTION" in
+	initramfs)
+		if [ -z "$DESTINATION" ]; then
+			DESTINATION=$(realpath labs-bootstrap-initramfs)
+		fi
+		;;
+	package)
+		if [ -z "$DESTINATION" ]; then
+			DESTINATION=$(realpath pkg.tar.gz)
+		fi
+		;;
+	*)
+		warning "Unknown action '$ACTION'"
+		exit
+		;;
+esac
+
+if [ -z "$ACTION" ]; then
+	echo "Usage: $0 <options> (--initramfs|--package)"
 	exit
 fi
 
-DESTINATION="$(realpath $1)"
+if [ -n "$CHROOT" ]; then
+	# Copy this script itself to inside the chroot
+	cp "$0" "${CHROOT}/init"
+
+	# Remove --chroot <dir> from the arguments
+	args2=$(echo $args | sed -e 's/--chroot \S\+//')
+
+	# Call this script inside the chroot
+	./chroot_gentoo /init --inside-chroot $args2
+fi
 
 # Change to a clean work directory
 mkdir -p "$WORK_DIR"
 cd "$WORK_DIR"
 rm -rf *
 
-# Setup minimal system
-mkdir -p bin sbin dev etc proc sys run lib64 mnt
-#cp -a /dev/{null,console,tty} dev/
-add_exe /bin/busybox
-
-# busybox dhcp client helper script
-mkdir -p usr/share/udhcpc
-cp /usr/share/udhcpc/default.script usr/share/udhcpc/
-
-add_exe /usr/sbin/sshd
-
-# transmission -> torrents
-add_exe /usr/bin/transmission-{daemon,remote}
-
-# Needed for HTTPS downloads
-add_exe /usr/bin/wget
-# TODO: copy CA certificate
-
-#add_exe /usr/bin/strace # For debug
-
-# Libs to allow DNS resolving that ldd does not
-# show because libc loads them on-the-fly
-add_libs /lib64/libnss_{dns,files}.so.2
-
-info "Setting root user and password."
-echo "root:x:0:0:root:/root:/bin/sh" > etc/passwd
-hashed_password=$(openssl passwd -1 -salt "salt" "password")
-echo "root:$hashed_password:0:0:::::" > etc/shadow
-
-# Needed to accept ssh connections
-info "Copying ssh keys."
-mkdir -p root/.ssh etc/dropbear
-cat /root/.ssh/id_rsa.pub > root/.ssh/authorized_keys
-# TODO: copy host keys
-
-# Copy keymap
-if [ -e $KEYMAP ]; then
-	info "Setting default keymap to $(basename $KEYMAP .map.gz)."
-	loadkeys -b $KEYMAP > keymap.map
-else
-	warning "Cannot find $KEYMAP, **not setting default keymap**."
+if [ -n "$INSIDE_CHROOT" ]; then
+	header " --- (chroot) Called with: $args ---"
 fi
 
-# Copy timezone files
-info "Setting timezone to $TIMEZONE."
-cp "/usr/share/zoneinfo/$TIMEZONE" etc/localtime
-echo "$TIMEZONE" > etc/timezone
+### Stuff to do inside the chroot if used
+
+if [ -z "$CHROOT" ]; then
+
+	if [ "$ACTION" = "initramfs" ]; then
+
+		# Setup minimal system
+		mkdir -p bin sbin dev etc proc sys run lib64 mnt
+		#cp -a /dev/{null,console,tty} dev/
+		add_exe /bin/busybox
+
+		# busybox dhcp client helper script
+		mkdir -p usr/share/udhcpc
+		cp /usr/share/udhcpc/default.script usr/share/udhcpc/
+
+		add_exe /usr/sbin/sshd
+
+		# transmission -> torrents
+		add_exe /usr/bin/transmission-{daemon,remote}
+
+		# Needed for HTTPS downloads
+		add_exe /usr/bin/wget
+		# TODO: copy CA certificate
+
+		#add_exe /usr/bin/strace # For debug
+
+		# Libs to allow DNS resolving that ldd does not
+		# show because libc loads them on-the-fly
+		add_libs /lib64/libnss_{dns,files}.so.2
+
+		# Copy keymap
+		if [ -e $KEYMAP ]; then
+			info "Setting default keymap to $(basename $KEYMAP .map.gz)."
+			loadkeys -b $KEYMAP > keymap.map
+		else
+			warning "Cannot find $KEYMAP, **not setting default keymap**."
+		fi
+
+		# Needed for "graphical" tty things
+		mkdir -p etc/terminfo/l
+		cp /etc/terminfo/l/linux etc/terminfo/l/
+
+	elif [ "$ACTION" = "package" ]; then
+
+		if [ ${#PKG_EXECUTABLES[*]} = 0 ]; then
+			warning "You did not pass any --exe <executable> arguments. What is my purpose then? :("
+			exit -1
+		fi
+
+		mkdir -p bin lib64
+	fi
+
+	if [ ${#PKG_EXECUTABLES[*]} != 0 ]; then
+		add_exe ${PKG_EXECUTABLES[*]}
+	fi
+fi
+
+if [ -n "$INSIDE_CHROOT" ]; then
+	header " --- (chroot) Exiting chroot ---"
+	# We do not want to do anything more inside the chroot
+	exit
+
+elif [ -n "$CHROOT" ]; then
+	# Copy the result from inside the chroot to the current work dir
+	cp -ar ${CHROOT}/${WORK_DIR}/* "${WORK_DIR}"
+fi
+
+### Stuff to do outside the chroot if used
+
+if [ "$ACTION" = "initramfs" ]; then
+
+	info "Setting root user and password."
+	echo "root:x:0:0:root:/root:/bin/sh" > etc/passwd
+	hashed_password=$(openssl passwd -1 -salt "salt" "password")
+	echo "root:$hashed_password:0:0:::::" > etc/shadow
+
+#### Copiar password root do repo
+
+	# Needed to accept SSH connections
+	info "Copying ssh keys."
+	mkdir -p root/.ssh etc/ssh var/empty
+	echo "sshd:x:22:22:sshd:/var/empty:/sbin/nologin" >> etc/passwd
+
+	if [ -n "$SSH_AUTHORIZED_KEYS" ]; then
+		cp "$SSH_AUTHORIZED_KEYS" root/.ssh/authorized_keys
+	else
+		warning "No SSH authorized_keys given. You will not be able to SSH in the initramfs!"
+	fi
+
+	if [ -n "$SSH_HOST_KEYS_DIR" ]; then
+		cp ${SSH_HOST_KEYS_DIR}/ssh_host_* etc/ssh/
+		chmod 600 etc/ssh/ssh_host_*
+	else
+		warning "No SSH host keys given. Shit will happen!"
+	fi
+
+	if [ -n "$SSH_CONFIG" ]; then
+		cat "${SSH_CONFIG}" | grep -v UsePAM > etc/ssh/sshd_config
+	else
+		warning "No SSH config given. Shit will happen!"
+	fi
+
+	# Copy timezone files
+	info "Setting timezone to $TIMEZONE."
+	cp "/usr/share/zoneinfo/$TIMEZONE" etc/localtime
+	echo "$TIMEZONE" > etc/timezone
+
+
+elif [ "$ACTION" = "package" ]; then
+	info "Creating package archive $DESTINATION"
+	tar cvzf "$DESTINATION" -C "${WORK_DIR}" . | quote_output
+	info "Done"
+	show_stats
+	exit
+fi
+
+### Inline init script ###
 
 cat << EOF  > init
 #!/bin/busybox sh
@@ -198,8 +359,17 @@ header "RNL bootstrap initramfs ${VERSION} - \$(uname -sr)"
 info "Starting DHCP client"
 udhcpc 2>/dev/null | grep "\(Lease\|Adding\)"
 
+if ip route | grep 193.136.154.0/25; then
+	EXTRA_SUBNET="193.136.154.128/26"
+else
+	EXTRA_SUBNET="193.136.154.0/25"
+fi
+
+info "Adding extra subnet route \${EXTRA_SUBNET}"
+ip r add "\${EXTRA_SUBNET}" dev eth0
+
 info "Starting SSH server"
-/bin/sshd
+/bin/sshd -E /sshd.log
 
 info "Starting NTP client"
 ntpd -q -p "${NTP_SERVER}"
@@ -223,16 +393,12 @@ done
 
 EOF
 
+### Finishing stuff ###
+
 chmod +x init
 
 info "Creating initramfs archive on $DESTINATION"
 (find . -print0 | cpio --null -ov --format=newc | gzip -9 > "$DESTINATION") 2>&1 | quote_output
 info "Done"
 
-compressed_size=$(ls -lh "$DESTINATION" | awk '{print $5}')
-full_size=$(du -sh . | awk '{print $1}')
-file_number=$(find . -type f | wc -l)
-
-echo "  Compressed size: $compressed_size"
-echo "  Uncompressed size: $full_size"
-echo "  File number: $file_number"
+show_stats

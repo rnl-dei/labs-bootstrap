@@ -7,7 +7,7 @@ mount -o bind /dev "$DIR/dev"
 mount -o bind /sys "$DIR/sys"
 
 export PS1="(gentoo chroot) \w $ "
-chroot $DIR /bin/sh
+chroot $DIR /bin/sh "$@"
 
 umount -f "$DIR/proc"
 umount -f "$DIR/dev"
