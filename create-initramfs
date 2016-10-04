@@ -1,0 +1,17 @@
+#!/bin/sh
+
+FILE=labs-bootstrap-initramfs
+
+./mk-labs-bootstrap-initramfs \
+	--initramfs \
+	--chroot /root/labs-bootstrap/gentoo-chroot \
+	--ssh-config ~/rnlinux/roles/ssh/files/etc/ssh/sshd_config \
+	--ssh-host-keys-dir ~/rnlinux/roles/ssh/files/etc/ssh \
+	--ssh-authorized-keys ~/rnlinux/roles/ssh/files/root/.ssh/authorized_keys \
+	--dest "$FILE"
+
+if [ $? = 0 ]; then
+	echo -e "\n$FILE created, enjoy!"
+else
+	echo e "\nSomething wrong probably happened, sorry..."
+fi

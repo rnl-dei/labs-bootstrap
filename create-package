@@ -1,0 +1,22 @@
+#!/bin/sh
+
+EXE="$1"
+
+if [ -z $EXE ]; then
+	echo "Usage: $0 <executable file>"
+	exit
+fi
+
+FILE="$(basename $EXE).tar.gz"
+
+./mk-labs-bootstrap-initramfs \
+	--package \
+	--chroot /root/labs-bootstrap/gentoo-chroot \
+	--exe "$EXE" \
+	--dest "$FILE"
+
+if [ $? = 0 ]; then
+	echo -e "\n$FILE created, enjoy!"
+else
+	echo e "\nSomething wrong probably happened, sorry..."
+fi
