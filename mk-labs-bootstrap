@@ -172,7 +172,7 @@ if [ -n "$CHROOT" ]; then
 	args2=$(echo $args | sed -e 's/--chroot \S\+//')
 
 	# Call this script inside the chroot
-	./chroot_gentoo /init --inside-chroot $args2
+	./chroot-gentoo /init --inside-chroot $args2
 fi
 
 # Change to a clean work directory
