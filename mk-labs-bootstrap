@@ -4,7 +4,7 @@ VERSION="0.9.9.6"
 WORK_DIR="/tmp/labs-bootstrap"
 KEYMAP="/usr/share/keymaps/i386/qwerty/pt-latin1.map.gz"
 TIMEZONE="Europe/Lisbon"
-SCRIPT_URL="http://geminio.rnl.tecnico.ulisboa.pt/do.sh"
+SCRIPT_URL="https://geminio.rnl.tecnico.ulisboa.pt/do.sh"
 NTP_SERVER="ntp.rnl.tecnico.ulisboa.pt"
 
 CYAN="\e[0;36m"
@@ -94,6 +94,7 @@ if [[ $EUID -ne 0 ]]; then
 	exit
 fi
 
+SCRIPT_PATH="$(dirname $(realpath $0))"
 
 args="$@"
 
@@ -120,12 +121,20 @@ while (( "$#" )); do
 			SSH_AUTHORIZED_KEYS=$2
 			shift
 			;;
+		"--root-password")
+			ROOT_PASSWORD=$2
+			shift
+			;;
 		"--dest")
 			DESTINATION="$(realpath $2)"
 			shift
 			;;
 		"--exe")
 			PKG_EXECUTABLES+=($2)
+			shift
+			;;
+		"--ca")
+			CA_CERTIFICATES+=($2)
 			shift
 			;;
 		"--initramfs")
@@ -208,8 +217,6 @@ if [ -z "$CHROOT" ]; then
 		add_exe /usr/bin/wget
 		# TODO: copy CA certificate
 
-		#add_exe /usr/bin/strace # For debug
-
 		# Libs to allow DNS resolving that ldd does not
 		# show because libc loads them on-the-fly
 		add_libs /lib64/libnss_{dns,files}.so.2
@@ -255,14 +262,22 @@ fi
 
 if [ "$ACTION" = "initramfs" ]; then
 
+	# Enable root login
+
 	info "Setting root user and password."
 	echo "root:x:0:0:root:/root:/bin/sh" > etc/passwd
-	hashed_password=$(openssl passwd -1 -salt "salt" "password")
+
+	if [ -n "$ROOT_PASSWORD" ]; then
+		hashed_password=$(echo "$ROOT_PASSWORD" | openssl passwd -1 -salt "weeee" -stdin)
+	else
+		hashed_password="!"
+		warning "Root password not defined. You will not be able to login locally!"
+	fi
+
 	echo "root:$hashed_password:0:0:::::" > etc/shadow
 
-#### Copiar password root do repo
-
 	# Needed to accept SSH connections
+
 	info "Copying ssh keys."
 	mkdir -p root/.ssh etc/ssh var/empty
 	echo "sshd:x:22:22:sshd:/var/empty:/sbin/nologin" >> etc/passwd
@@ -287,9 +302,27 @@ if [ "$ACTION" = "initramfs" ]; then
 	fi
 
 	# Copy timezone files
+
 	info "Setting timezone to $TIMEZONE."
 	cp "/usr/share/zoneinfo/$TIMEZONE" etc/localtime
 	echo "$TIMEZONE" > etc/timezone
+
+	# Copy transmision config
+
+	mkdir -p var/lib/transmission
+	"${SCRIPT_PATH}"/transmission_config_filter.awk > var/lib/transmission/settings.json
+
+	# Copy CA certificates
+
+	if [ ${#CA_CERTIFICATES[*]} != 0 ]; then
+		mkdir -p etc/ssl/certs
+		for cert_file in ${CA_CERTIFICATES[*]}; do
+			cert_name=$(basename $cert_file)
+			cp $cert_file etc/ssl/certs/
+			cert_hash=$(openssl x509 -hash -noout -in "${cert_file}")".0"
+			ln -s "${cert_name}" "etc/ssl/certs/${cert_hash}"
+		done
+	fi
 
 
 elif [ "$ACTION" = "package" ]; then
@@ -375,8 +408,8 @@ info "Starting NTP client"
 ntpd -q -p "${NTP_SERVER}"
 
 info "Starting Transmission"
-mkdir /torrents /downloads
-transmission-daemon --no-dht --logfile /transmission.log --watch-dir /torrents --download-dir /downloads
+mkdir /torrents /downloads /incomplete
+transmission-daemon --logfile /transmission.log --config-dir /var/lib/transmission
 
 args="\$(cat /proc/cmdline | sed 's/ /\&/g')"
 
@@ -392,10 +425,13 @@ while :; do
 done
 
 EOF
+chmod +x init
+
+### Inline completeScript.sh script ###
+cp "${SCRIPT_PATH}/completeScript.sh" completeScript.sh
+chmod +x completeScript.sh
 
 ### Finishing stuff ###
-
-chmod +x init
 
 info "Creating initramfs archive on $DESTINATION"
 (find . -print0 | cpio --null -ov --format=newc | gzip -9 > "$DESTINATION") 2>&1 | quote_output
