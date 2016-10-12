@@ -1,6 +1,19 @@
 # Labs bootstrap initramfs
 Framework to generate initramfs with the primary purpose of deploying new base images to our labs, or "How I accidentally created a Linux distribution".
 
+## Emergency guide
+
+Did you FUBAR? Or did the previous guy ragequit? Do not despair!
+Only one command is needed to recreate everything as before.
+
+```
+$ git clone git@atenas.rnl.tecnico.ulisboa.pt:rnlinux/labs-bootstrap.git
+$ cd labs-bootstrap
+$ make all
+```
+
+Disclaimer: It still doesn't recreate the chroot and kernel, but this is a work in progress.
+
 ## Quick How-to
 
 What you need to quickly work with what the tools are already configured for.
