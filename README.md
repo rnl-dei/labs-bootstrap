@@ -50,7 +50,7 @@ The package should now be available for the initramfs like with pre-defined pack
 
 Packages created with the procedure above can be installed by using the `emerge` command inside the initramfs, like this:
 
-```sh
+```
 [initramfs] stuart:~ # emerge rsync
  * rsync - Installation done
 ```
