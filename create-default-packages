@@ -1,23 +1,25 @@
 #!/bin/sh
 
 PKG_DIR=/var/www/geminio/packages
+export QUIET=1
 
 ./create-package "/usr/bin/strace"  "${PKG_DIR}/strace.tar.gz"
 ./create-package "/usr/sbin/parted" "${PKG_DIR}/parted.tar.gz"
 ./create-package "/sbin/mkfs.ext4"  "${PKG_DIR}/mkfs.ext4.tar.gz"
 
+./create-package "/usr/sbin/grub-install"  "${PKG_DIR}/grub.tar.gz" \
+	--copy-dir "/usr/lib/grub" "/usr/lib/grub"
 
 ### Custom transmission package
 
-./transmission_config_filter.awk > /tmp/transmission_settings.json
+TRANSMISSION_CONFIG="/root/rnlinux/roles/transmission/files/var/lib/transmission/.config/transmission/settings.json"
 
-./mk-labs-bootstrap \
-	--package \
-	--chroot /root/labs-bootstrap/gentoo-chroot \
-	--add-exe /usr/bin/transmission-daemon \
+scripts/transmission_config_filter.awk "${TRANSMISSION_CONFIG}" > /tmp/transmission_settings.json
+
+./create-package "/usr/bin/transmission-daemon" "${PKG_DIR}/transmission.tar.gz" \
 	--copy-dir /usr/share/transmission/web /usr/share/transmission/web \
 	--add-external-file /tmp/transmission_settings.json /var/lib/transmission/settings.json \
+	--add-external-file /root/labs-bootstrap/scripts/completeScript.sh /completeScript.sh \
 	--create-dir /torrents \
 	--create-dir /downloads \
 	--create-dir /incomplete \
-	--dest "${PKG_DIR}"/transmission.tar.gz

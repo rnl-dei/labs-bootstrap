@@ -19,10 +19,11 @@ pkg="${1}"
 file="${pkg}.tar.gz"
 
 info "${pkg} - Downloading...     "
-wget_output=$(/bin/wget --no-verbose --directory-prefix ${DOWNLOAD_DIR} "${SERVER_URL}/packages/${file}" 2>&1)
+wget_output=$(/bin/wget --no-verbose "${SERVER_URL}/packages/${file}" -O "${DOWNLOAD_DIR}/${file}" 2>&1)
 
 if [ $? -ne 0 ]; then
 	warning "Package '${pkg}' not found!"
+	rm "${DOWNLOAD_DIR}/${file}"
 	echo "$wget_output"
 	exit
 fi
