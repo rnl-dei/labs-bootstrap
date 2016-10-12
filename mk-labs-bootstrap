@@ -246,9 +246,10 @@ if [ -z "$CHROOT" ]; then
 			warning "Cannot find $KEYMAP, **not setting default keymap**."
 		fi
 
-		# Needed for "graphical" tty things
-		mkdir -p etc/terminfo/l
-		cp /etc/terminfo/l/linux etc/terminfo/l/
+		# Needed for "graphical" terminal things
+		mkdir -p etc/terminfo/{l,x}
+		cp /etc/terminfo/l/linux etc/terminfo/l/ # Local tty terminal
+		cp /etc/terminfo/x/xterm etc/terminfo/x/ # SSH terminal
 
 	elif [ "$ACTION" = "package" ]; then
 
@@ -264,6 +265,16 @@ if [ -z "$CHROOT" ]; then
 
 	if [ ${#PKG_EXECUTABLES[*]} != 0 ]; then
 		add_exe ${PKG_EXECUTABLES[*]}
+	fi
+
+	# Copy arbitrary files
+
+	if [ ${#EXTRA_FILES[*]} != 0 ]; then
+		for src_file in "${!EXTRA_FILES[@]}"; do
+			dest_file="${EXTRA_FILES[$src_file]#/}" # Must remove leading "/" to copy to work dir structure
+			mkdir -p $(dirname "$dest_file")
+			cp -a "$src_file" "$dest_file"
+		done
 	fi
 
 	# Copy directories recursively from chroot

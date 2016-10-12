@@ -7,8 +7,17 @@ export QUIET=1
 ./create-package "/usr/sbin/parted" "${PKG_DIR}/parted.tar.gz"
 ./create-package "/sbin/mkfs.ext4"  "${PKG_DIR}/mkfs.ext4.tar.gz"
 
+./create-package "/usr/sbin/lspci"  "${PKG_DIR}/lspci.tar.gz" \
+	--add-file "/usr/share/misc/pci.ids.gz" "/usr/share/misc/pci.ids.gz"
+
 ./create-package "/usr/sbin/grub-install"  "${PKG_DIR}/grub.tar.gz" \
 	--copy-dir "/usr/lib/grub" "/usr/lib/grub"
+
+echo 'audio:x:1000:' > /tmp/audio_group
+./create-package "/usr/bin/mpv"     "${PKG_DIR}/mpv.tar.gz" \
+	--copy-dir "/usr/share/alsa" "/usr/share/alsa" \
+	--add-external-file "/tmp/audio_group" "/etc/group"
+rm -f /tmp/audio_group
 
 ### Custom transmission package
 
