@@ -10,9 +10,10 @@ RED="\e[1;31m"
 GREEN="\e[32m"
 
 rescue_shell() {
-    echo
+    rnl_header
     # "settsid cttyhack" -> Needed to have job control
-    # "login -f root" -> Use this instead of calling sh to source /etc/profile
+    # "login" -> Use this instead of calling sh to source /etc/profile
+    # "-f root" -> Needed to have login not ask authentication
     setsid cttyhack login -f root
 }
 
@@ -26,6 +27,10 @@ error() {
 
 header() {
     echo -e "\n${GREEN}   ${1}${NORMAL}\n"
+}
+
+rnl_header() {
+    header "RNL bootstrap initramfs ${VERSION} - $(uname -sr)"
 }
 
 # Create symlinks to all commands
@@ -54,7 +59,7 @@ ip link set lo up
 # Set TTL to distinguish between this initramfs and other OS
 echo 32 > /proc/sys/net/ipv4/ip_default_ttl
 
-header "RNL bootstrap initramfs ${VERSION} - $(uname -sr)"
+rnl_header
 
 info "Starting DHCP client"
 udhcpc 2>/dev/null | grep "\(Lease\|Adding\)"
@@ -84,6 +89,7 @@ info "Executing script"
 source do.sh
 
 while :; do
-    header "RNL bootstrap initramfs ${VERSION} - $(uname -sr)"
+    echo
+    rnl_header
     setsid cttyhack login
 done

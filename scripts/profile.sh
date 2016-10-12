@@ -8,6 +8,7 @@ export PS1="${BGRED}${YELLOW}[initramfs]${NORMAL} ${GREEN}\h:\w${NORMAL} # "
 alias vim=vi
 alias reboot="/sbin/reboot -f"
 alias poweroff="/sbin/poweroff -f"
+alias wget="/bin/wget"
 
 alias scp="install_and_run scp"
 alias strace="install_and_run strace"
