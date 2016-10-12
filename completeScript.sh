@@ -6,7 +6,7 @@ if [ -n "$script" ]; then
 	script_dir=$(dirname ${script})
 	cd "${script_dir}"
 	chmod +x run.sh
-	./run.sh
+	sh run.sh
 else
 	echo "Cannot find run.sh in /downloads"
 fi

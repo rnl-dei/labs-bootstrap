@@ -24,7 +24,7 @@ EOF
 	--ssh-host-keys-dir ~/rnlinux/roles/ssh/files/etc/ssh \
 	--ssh-authorized-keys ~/rnlinux/roles/ssh/files/root/.ssh/authorized_keys \
 	--root-password "$password" \
-	--ca "/usr/local/share/ca-certificates/RNLcacert.crt" \
+	--add-ca "/usr/local/share/ca-certificates/RNLcacert.crt" \
 	--dest "$FILE" \
 	"$@"
 

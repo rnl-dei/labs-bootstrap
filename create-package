@@ -1,22 +1,35 @@
 #!/bin/sh
 
 EXE="$1"
+DEST="$2"
+shift
 
-if [ -z $EXE ]; then
+if [ -z "$EXE" ]; then
 	echo "Usage: $0 <executable file>"
 	exit
 fi
 
 FILE="$(basename $EXE).tar.gz"
 
-./mk-labs-bootstrap \
-	--package \
-	--chroot /root/labs-bootstrap/gentoo-chroot \
-	--exe "$EXE" \
-	--dest "$FILE"
+if [ -z "$DEST" ]; then
+	DEST=$FILE
+else
+	shift
+fi
+
+(
+	[ "$QUIET" ] && exec &>/dev/null
+
+	./mk-labs-bootstrap \
+		--package \
+		--chroot /root/labs-bootstrap/gentoo-chroot \
+		--add-exe "$EXE" \
+		--dest "$DEST" \
+		"$@"
+)
 
 if [ $? = 0 ]; then
-	echo -e "\n$FILE created, enjoy!"
+	echo -e "$DEST created, enjoy!"
 else
-	echo e "\nSomething wrong probably happened, sorry..."
+	echo e "Something wrong probably happened with ${EXE}, sorry..."
 fi

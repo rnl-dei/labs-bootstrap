@@ -1,18 +1,21 @@
 #!/bin/bash
 
-VERSION="0.9.9.6"
+VERSION="0.9.9.8"
 WORK_DIR="/tmp/labs-bootstrap"
 KEYMAP="/usr/share/keymaps/i386/qwerty/pt-latin1.map.gz"
 TIMEZONE="Europe/Lisbon"
-SCRIPT_URL="https://geminio.rnl.tecnico.ulisboa.pt/do.sh"
+SERVER_URL="https://geminio.rnl.tecnico.ulisboa.pt"
 NTP_SERVER="ntp.rnl.tecnico.ulisboa.pt"
 
 CYAN="\e[0;36m"
-RED="\e[1;31m"
-YELLOW="\e[0;33m"
+RED="\e[0;31m"
+YELLOW="\e[33m"
 GRAY="\e[0;90m"
-GREEN="\e[32m"
+GREEN="\e[0;32m"
 NORMAL="\e[0m"
+BGRED="\e[1;41m"
+
+SHELL_PS1="${BGRED}${YELLOW}[initramfs]${NORMAL} ${GREEN}\h:\w${NORMAL} # "
 
 function info() {
 	echo -e $CYAN"$@"$NORMAL
@@ -28,7 +31,7 @@ function warning() {
 
 function quote_output() {
 	while read line; do
-		echo -e "  $GRAY$line$NORMAL"
+		echo -e "  $GRAY$line$NORMAL" >&2
 	done
 }
 
@@ -37,7 +40,7 @@ function add_linked_libs() {
 	for lib in $(ldd $bin | awk '/lib64/{print $(NF-1)}'); do
 		lib="${lib}"
 		if [ ! -f lib64/$(basename $lib) ]; then
-			echo "  $lib"
+			echo "  $lib" >&2
 			cp "${lib}" lib64/
 		fi
 	done
@@ -89,16 +92,20 @@ function show_stats() {
 	echo "  File number: $file_number"
 }
 
+###### Script starts here ######################################################
+
 if [[ $EUID -ne 0 ]]; then
 	echo "This script must be run as root"
 	exit
 fi
 
-SCRIPT_PATH="$(dirname $(realpath $0))"
+OWN_PATH="$(dirname $(realpath $0))"
+SCRIPTS_PATH="${OWN_PATH}/scripts"
 
 args="$@"
 
 PKG_EXECUTABLES=()
+declare -A COPY_DIRS COPY_EXTERNAL_DIRS EXTRA_FILES EXTRA_EXTERNAL_FILES
 
 while (( "$#" )); do
 	case "$1" in
@@ -109,15 +116,15 @@ while (( "$#" )); do
 		"--inside-chroot")
 			INSIDE_CHROOT=1
 			;;
-		"--ssh-config")
+		"--ssh-config") # Outside chroot
 			SSH_CONFIG=$2
 			shift
 			;;
-		"--ssh-host-keys-dir")
+		"--ssh-host-keys-dir") # Outside chroot
 			SSH_HOST_KEYS_DIR=$2
 			shift
 			;;
-		"--ssh-authorized-keys")
+		"--ssh-authorized-keys") # Outside chroot
 			SSH_AUTHORIZED_KEYS=$2
 			shift
 			;;
@@ -126,14 +133,30 @@ while (( "$#" )); do
 			shift
 			;;
 		"--dest")
-			DESTINATION="$(realpath $2)"
+			DESTINATION="$2"
 			shift
 			;;
-		"--exe")
+		"--add-exe") # Inside chroot
 			PKG_EXECUTABLES+=($2)
 			shift
 			;;
-		"--ca")
+		"--add-file")	# Inside chroot
+			EXTRA_FILES[$2]="$3"
+			shift 2
+			;;
+		"--copy-dir")	# Inside chroot
+			COPY_DIRS["$2"]="$3"
+			shift 2
+			;;
+		"--add-external-file")	# Outside chroot
+			EXTRA_EXTERNAL_FILES["$2"]="$3"
+			shift 2
+			;;
+		"--create-dir")
+			CREATE_DIRS+=($2)
+			shift
+			;;
+		"--add-ca")	# Outside chroot
 			CA_CERTIFICATES+=($2)
 			shift
 			;;
@@ -153,13 +176,21 @@ done
 
 case "$ACTION" in
 	initramfs)
-		if [ -z "$DESTINATION" ]; then
+		if [ -n "$INSIDE_CHROOT" ]; then
+			:
+		elif [ -z "$DESTINATION" ]; then
 			DESTINATION=$(realpath labs-bootstrap-initramfs)
+		else
+			DESTINATION="$(realpath $DESTINATION)"
 		fi
 		;;
 	package)
-		if [ -z "$DESTINATION" ]; then
+		if [ -n "$INSIDE_CHROOT" ]; then
+			:
+		elif [ -z "$DESTINATION" ]; then
 			DESTINATION=$(realpath pkg.tar.gz)
+		else
+			DESTINATION="$(realpath $DESTINATION)"
 		fi
 		;;
 	*)
@@ -193,7 +224,7 @@ if [ -n "$INSIDE_CHROOT" ]; then
 	header " --- (chroot) Called with: $args ---"
 fi
 
-### Stuff to do inside the chroot if used
+###### Stuff to to inside the chroot if used ###################################
 
 if [ -z "$CHROOT" ]; then
 
@@ -204,18 +235,10 @@ if [ -z "$CHROOT" ]; then
 		#cp -a /dev/{null,console,tty} dev/
 		add_exe /bin/busybox
 
-		# busybox dhcp client helper script
-		mkdir -p usr/share/udhcpc
-		cp /usr/share/udhcpc/default.script usr/share/udhcpc/
-
 		add_exe /usr/sbin/sshd
-
-		# transmission -> torrents
-		add_exe /usr/bin/transmission-{daemon,remote}
 
 		# Needed for HTTPS downloads
 		add_exe /usr/bin/wget
-		# TODO: copy CA certificate
 
 		# Libs to allow DNS resolving that ldd does not
 		# show because libc loads them on-the-fly
@@ -235,16 +258,28 @@ if [ -z "$CHROOT" ]; then
 
 	elif [ "$ACTION" = "package" ]; then
 
-		if [ ${#PKG_EXECUTABLES[*]} = 0 ]; then
-			warning "You did not pass any --exe <executable> arguments. What is my purpose then? :("
-			exit -1
-		fi
+		#if [ ${#PKG_EXECUTABLES[*]} = 0 ]; then
+		#	warning "You did not pass any --exe <executable> arguments. What is my purpose then? :("
+		#	exit -1
+		#fi
 
 		mkdir -p bin lib64
 	fi
 
+	# Add arbitrary executables from the chroot
+
 	if [ ${#PKG_EXECUTABLES[*]} != 0 ]; then
 		add_exe ${PKG_EXECUTABLES[*]}
+	fi
+
+	# Copy directories recursively from chroot
+
+	if [ ${#COPY_DIRS[*]} != 0 ]; then
+		for src_dir in "${!COPY_DIRS[@]}"; do
+			dest_dir="${COPY_DIRS[$src_dir]#/}" # Must remove leading "/" to copy to work dir structure
+			mkdir -p $(dirname "$dest_dir")
+			cp -ar "$src_dir" "$dest_dir"
+		done
 	fi
 fi
 
@@ -258,82 +293,131 @@ elif [ -n "$CHROOT" ]; then
 	cp -ar ${CHROOT}/${WORK_DIR}/* "${WORK_DIR}"
 fi
 
-### Stuff to do outside the chroot if used
+###### Stuff to to outside the chroot for both initramfs and packages ##########
 
-if [ "$ACTION" = "initramfs" ]; then
+# Copy arbitrary external files
 
-	# Enable root login
+if [ ${#EXTRA_EXTERNAL_FILES[*]} != 0 ]; then
+	for src_file in "${!EXTRA_EXTERNAL_FILES[@]}"; do
+		dest_file="${EXTRA_EXTERNAL_FILES[$src_file]#/}" # Must remove leading "/" to copy to work dir structure
+		mkdir -p $(dirname "$dest_file")
+		cp -a "$src_file" "$dest_file"
+	done
+fi
 
-	info "Setting root user and password."
-	echo "root:x:0:0:root:/root:/bin/sh" > etc/passwd
+# Create empty directories
 
-	if [ -n "$ROOT_PASSWORD" ]; then
-		hashed_password=$(echo "$ROOT_PASSWORD" | openssl passwd -1 -salt "weeee" -stdin)
-	else
-		hashed_password="!"
-		warning "Root password not defined. You will not be able to login locally!"
-	fi
+if [ ${#CREATE_DIRS[*]} != 0 ]; then
+	for new_dir in "${CREATE_DIRS[@]#/}"; do
+		mkdir -p "$new_dir"
+	done
+fi
 
-	echo "root:$hashed_password:0:0:::::" > etc/shadow
+### Stuff to do outside the chroot only for packages
 
-	# Needed to accept SSH connections
-
-	info "Copying ssh keys."
-	mkdir -p root/.ssh etc/ssh var/empty
-	echo "sshd:x:22:22:sshd:/var/empty:/sbin/nologin" >> etc/passwd
-
-	if [ -n "$SSH_AUTHORIZED_KEYS" ]; then
-		cp "$SSH_AUTHORIZED_KEYS" root/.ssh/authorized_keys
-	else
-		warning "No SSH authorized_keys given. You will not be able to SSH in the initramfs!"
-	fi
-
-	if [ -n "$SSH_HOST_KEYS_DIR" ]; then
-		cp ${SSH_HOST_KEYS_DIR}/ssh_host_* etc/ssh/
-		chmod 600 etc/ssh/ssh_host_*
-	else
-		warning "No SSH host keys given. Shit will happen!"
-	fi
-
-	if [ -n "$SSH_CONFIG" ]; then
-		cat "${SSH_CONFIG}" | grep -v UsePAM > etc/ssh/sshd_config
-	else
-		warning "No SSH config given. Shit will happen!"
-	fi
-
-	# Copy timezone files
-
-	info "Setting timezone to $TIMEZONE."
-	cp "/usr/share/zoneinfo/$TIMEZONE" etc/localtime
-	echo "$TIMEZONE" > etc/timezone
-
-	# Copy transmision config
-
-	mkdir -p var/lib/transmission
-	"${SCRIPT_PATH}"/transmission_config_filter.awk > var/lib/transmission/settings.json
-
-	# Copy CA certificates
-
-	if [ ${#CA_CERTIFICATES[*]} != 0 ]; then
-		mkdir -p etc/ssl/certs
-		for cert_file in ${CA_CERTIFICATES[*]}; do
-			cert_name=$(basename $cert_file)
-			cp $cert_file etc/ssl/certs/
-			cert_hash=$(openssl x509 -hash -noout -in "${cert_file}")".0"
-			ln -s "${cert_name}" "etc/ssl/certs/${cert_hash}"
-		done
-	fi
-
-
-elif [ "$ACTION" = "package" ]; then
+if [ "$ACTION" = "package" ]; then
 	info "Creating package archive $DESTINATION"
 	tar cvzf "$DESTINATION" -C "${WORK_DIR}" . | quote_output
 	info "Done"
 	show_stats
-	exit
+	exit # package creatin terminates the script here
 fi
 
-### Inline init script ###
+###### Stuff to to outside the chroot only for initramfs #######################
+
+# Enable root login
+
+info "Setting root user and password."
+echo "root:x:0:0:root:/root:/bin/sh" > etc/passwd
+
+if [ -n "$ROOT_PASSWORD" ]; then
+	hashed_password=$(echo "$ROOT_PASSWORD" | openssl passwd -1 -salt "weeee" -stdin)
+else
+	hashed_password="!"
+	warning "Root password not defined. You will not be able to login locally!"
+fi
+
+echo "root:$hashed_password:0:0:::::" > etc/shadow
+
+
+# busybox dhcp client helper script
+mkdir -p usr/share/udhcpc
+cp ${SCRIPTS_PATH}/dhcp_script.sh usr/share/udhcpc/default.script
+
+# Needed to accept SSH connections
+
+info "Copying ssh keys."
+mkdir -p root/.ssh etc/ssh var/empty
+echo "sshd:x:22:22:sshd:/var/empty:/sbin/nologin" >> etc/passwd
+
+if [ -n "$SSH_AUTHORIZED_KEYS" ]; then
+	cp "$SSH_AUTHORIZED_KEYS" root/.ssh/authorized_keys
+else
+	warning "No SSH authorized_keys given. You will not be able to SSH in the initramfs!"
+fi
+
+if [ -n "$SSH_HOST_KEYS_DIR" ]; then
+	cp ${SSH_HOST_KEYS_DIR}/ssh_host_* etc/ssh/
+	chmod 600 etc/ssh/ssh_host_*
+else
+	warning "No SSH host keys given. Shit will happen!"
+fi
+
+if [ -n "$SSH_CONFIG" ]; then
+	cat "${SSH_CONFIG}" | grep -v UsePAM > etc/ssh/sshd_config
+else
+	warning "No SSH config given. Shit will happen!"
+fi
+
+# Copy timezone files
+
+info "Setting timezone to $TIMEZONE."
+cp "/usr/share/zoneinfo/$TIMEZONE" etc/localtime
+echo "$TIMEZONE" > etc/timezone
+
+# Copy CA certificates
+
+if [ ${#CA_CERTIFICATES[*]} != 0 ]; then
+	mkdir -p etc/ssl/certs
+	for cert_file in ${CA_CERTIFICATES[*]}; do
+		cert_name=$(basename $cert_file)
+		cp $cert_file etc/ssl/certs/
+		cert_hash=$(openssl x509 -hash -noout -in "${cert_file}")".0"
+		ln -s "${cert_name}" "etc/ssl/certs/${cert_hash}"
+	done
+fi
+
+# Copy package install script
+cp ${SCRIPTS_PATH}/emerge.sh bin/emerge
+chmod +x bin/emerge
+
+
+### WARNING !!! Do not forget to escape variables like this "\$var" inside inline scripts, you will regreat it !!! 
+
+###### Inline profile script ###################################################
+
+cat << EOF > etc/profile
+export PS1='${SHELL_PS1}'
+alias vim=vi
+alias reboot="/sbin/reboot -f"
+alias poweroff="/sbin/poweroff -f"
+
+alias scp="install_and_run scp"
+alias strace="install_and_run strace"
+alias htop="install_and_run htop"
+
+install_and_run() {
+	prog="\$1"
+	shift
+	which "\${prog}" >/dev/null
+	if [ \$? -ne 0 ]; then
+		emerge "\${prog}"
+	fi
+	"\${prog}" "\$@"
+}
+EOF
+
+###### Inline init script ######################################################
 
 cat << EOF  > init
 #!/bin/busybox sh
@@ -344,7 +428,10 @@ RED="\e[1;31m"
 GREEN="\e[32m"
 
 rescue_shell() {
-    setsid cttyhack sh
+    echo
+    # "settsid cttyhack" -> Needed to have job control
+    # "login -f root" -> Use this instead of calling sh to source /etc/profile
+    setsid cttyhack login -f root
 }
 
 info() {
@@ -407,14 +494,10 @@ info "Starting SSH server"
 info "Starting NTP client"
 ntpd -q -p "${NTP_SERVER}"
 
-info "Starting Transmission"
-mkdir /torrents /downloads /incomplete
-transmission-daemon --logfile /transmission.log --config-dir /var/lib/transmission
-
 args="\$(cat /proc/cmdline | sed 's/ /\&/g')"
 
-info "Downloading ${SCRIPT_URL}?\${args}"
-/bin/wget --no-verbose "${SCRIPT_URL}?\${args}" -O do.sh
+info "Downloading ${SERVER_URL}/do.sh?\${args}"
+/bin/wget --no-verbose "${SERVER_URL}/do.sh?\${args}" -O do.sh
 
 info "Executing script"
 source do.sh
@@ -427,11 +510,11 @@ done
 EOF
 chmod +x init
 
-### Inline completeScript.sh script ###
-cp "${SCRIPT_PATH}/completeScript.sh" completeScript.sh
+### TODO TO REMOVE
+cp "${SCRIPTS_PATH}/completeScript.sh" completeScript.sh
 chmod +x completeScript.sh
 
-### Finishing stuff ###
+###### Finishing initramfs creation ############################################
 
 info "Creating initramfs archive on $DESTINATION"
 (find . -print0 | cpio --null -ov --format=newc | gzip -9 > "$DESTINATION") 2>&1 | quote_output
