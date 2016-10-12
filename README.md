@@ -162,7 +162,7 @@ In the `scripts` directory are all scripts that are not meant to be called direc
 by you. Most are to be included unchanged in the final initramfs, but there may also
 be some to help creating the initramfs or packages.
 
- * init.sh - *THE* init script that is called when the kernel finishes booting up.
+ * init.sh - **THE** init script that is called when the kernel finishes booting up.
  * profile.sh - Various alias and functions to improve the initramfs shell experience.
  * dhcp_script.sh - Called by busybox's udhcpc to set up the network settings.
  * completeScript.sh - Called by transmission when a torrents finishes.
