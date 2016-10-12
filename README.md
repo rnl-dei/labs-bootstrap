@@ -1,0 +1,1 @@
+Framework to generate initramfs with the primary purpose of deploying new base images to our labs, or "How I accidentally created and Linux distribution".
