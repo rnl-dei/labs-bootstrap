@@ -1,7 +1,7 @@
 PKG_DIR = "/var/www/geminio/packages"
 TRANSMISSION_CONFIG = "/root/rnlinux/roles/transmission/files/var/lib/transmission/.config/transmission/settings.json"
 
-PACKAGES = strace parted mkfs.ext4 lspci grub mpv 
+PACKAGES = scp strace parted mkfs.ext4 lspci grub mpv
 
 .PHONY: packages initramfs all
 
@@ -12,25 +12,21 @@ initramfs:
 
 packages: $(PACKAGES)
 
-define find_bin
-	$(shell ./chroot-gentoo -c "which $(1)")
-endef
-
 # Generic rule
 %:
-	@./create-package $(call find_bin,$@) $(PKG_DIR)/$@.tar.gz
+	@./create-package "$@" $(PKG_DIR)/$@.tar.gz
 
 lspci:
-	@./create-package $(call find_bin,$@) $(PKG_DIR)/$@.tar.gz \
+	@./create-package "$@" $(PKG_DIR)/$@.tar.gz \
 		--add-file "/usr/share/misc/pci.ids.gz" "/usr/share/misc/pci.ids.gz"
 
 grub:
-	@./create-package "/usr/sbin/grub-install" "${PKG_DIR}/$@.tar.gz" \
+	@./create-package "grub-install" "${PKG_DIR}/$@.tar.gz" \
 		--copy-dir "/usr/lib/grub" "/usr/lib/grub"
 	
 mpv:
 	@echo 'audio:x:1000:' > /tmp/audio_group
-	@./create-package $(call find_bin,$@) $(PKG_DIR)/$@.tar.gz \
+	@./create-package "$@" $(PKG_DIR)/$@.tar.gz \
 		--copy-dir "/usr/share/alsa" "/usr/share/alsa" \
 		--add-external-file "/tmp/audio_group" "/etc/group"
 	@rm -f /tmp/audio_group
