@@ -23,7 +23,7 @@ lspci:
 grub:
 	@./create-package "grub-install" "${PKG_DIR}/$@.tar.gz" \
 		--copy-dir "/usr/lib/grub" "/usr/lib/grub"
-	
+
 mpv:
 	@echo 'audio:x:1000:' > /tmp/audio_group
 	@./create-package "$@" $(PKG_DIR)/$@.tar.gz \
@@ -32,7 +32,7 @@ mpv:
 	@rm -f /tmp/audio_group
 
 transmission:
-	@scripts/transmission_config_filter.awk "${TRANSMISSION_CONFIG}" > /tmp/transmission_settings.json
+	@helpers/transmission_config_filter.awk "${TRANSMISSION_CONFIG}" > /tmp/transmission_settings.json
 
 	@./create-package "/usr/bin/transmission-daemon" "${PKG_DIR}/$@.tar.gz" \
 		--copy-dir /usr/share/transmission/web /usr/share/transmission/web \
