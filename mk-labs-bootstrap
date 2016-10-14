@@ -198,7 +198,17 @@ if [ -z "$ACTION" ]; then
 	exit
 fi
 
+if [ -n "$INSIDE_CHROOT" ]; then
+	header " --- [mk-labs-bootstrap] chroot called with: $args ---"
+else
+	header " --- [mk-labs-bootstrap] called with: $args ---"
+fi
+
 if [ -n "$CHROOT" ]; then
+
+	# Check if stage3 is fine
+	./chroot-gentoo -c "true" 
+
 	# Copy this script itself to inside the chroot
 	cp "$0" "${CHROOT}/init"
 
@@ -213,10 +223,6 @@ fi
 mkdir -p "$WORK_DIR"
 cd "$WORK_DIR"
 rm -rf *
-
-if [ -n "$INSIDE_CHROOT" ]; then
-	header " --- (chroot) Called with: $args ---"
-fi
 
 ###### Stuff to to inside the chroot if used ###################################
 
@@ -289,7 +295,7 @@ if [ -z "$CHROOT" ]; then
 fi
 
 if [ -n "$INSIDE_CHROOT" ]; then
-	header " --- (chroot) Exiting chroot ---"
+	header " --- [mk-labs-bootstrap] chroot exiting ---"
 	# We do not want to do anything more inside the chroot
 	exit
 

@@ -1,14 +1,93 @@
-#!/bin/sh
+#!/bin/bash
 
-DIR=gentoo-chroot
+BASE_DIR="$(dirname $(realpath $0))"
+CHROOT="${BASE_DIR}/gentoo-stage3"
 
-mount -t proc /proc "$DIR/proc"
-mount -o bind /dev "$DIR/dev"
-mount -o bind /sys "$DIR/sys"
+STAGE3_URL="http://ftp.rnl.tecnico.ulisboa.pt/pub/gentoo/gentoo-distfiles/releases/amd64/autobuilds"
+
+CYAN="\e[0;36m"
+RED="\e[0;31m"
+NORMAL="\e[0m"
+
+function header() {
+	echo -e "\n${CYAN}  ============================================================\
+============================\r  ================  ${1}  ${NORMAL}"
+}
+
+function warning() {
+	echo -e "  ${RED}${1}${NORMAL}"
+}
+
+# Check if stage3 exists
+
+if [ ! -x "${CHROOT}/sbin/init" ]; then
+
+	warning "It seems like the stage3 is missing or in bad shape."
+	warning "This is going to take a while to rebuild, but less than 5 minutes."
+
+	rm -rf "${CHROOT}"
+	mkdir "${CHROOT}"
+	url="$(curl --silent "${STAGE3_URL}/latest-stage3-amd64-nomultilib.txt" | awk '/^[^#]/{print $1}')"
+	stage3_url="${STAGE3_URL}/${url}"
+
+	header "Downloading stage3"
+	wget "$stage3_url" -O "${CHROOT}/stage3.tar.bz2"
+
+	header "Extracting stage3"
+	tar xf "${CHROOT}/stage3.tar.bz2" -C "${CHROOT}"
+	rm "${CHROOT}/stage3.tar.bz2"
+
+
+	header "Setting up base system"
+	echo "Copying /etc/resolv.conf"
+	cp "/etc/resolv.conf" "${CHROOT}/etc/resolv.conf"
+	echo "Setting vi/vim symlinks"
+	ln -s busybox "${CHROOT}/bin/{vi,vim}"
+
+	header "Setting up portage"
+
+	mkdir "${CHROOT}/etc/portage/repos.conf" "${CHROOT}/usr/portage/"
+	cp "${BASE_DIR}/helpers/make.conf" "${CHROOT}/etc/portage/"
+	cp "${BASE_DIR}/helpers/gentoo-repos.conf" "${CHROOT}/etc/portage/repos.conf"
+
+	"$0" -c "emerge-webrsync"
+
+	header "Installing maintenance packages"
+
+	"$0" -c "emerge eix genlop gentoolkit portage-utils"
+	"$0" -c "eix-update"
+
+	header "Done"
+fi
+
+### Mount checks
+
+function mount_exists() {
+	mount | grep "${CHROOT}${1}" >/dev/null
+}
+
+if ! mount_exists /proc; then
+	mount -t proc /proc "${CHROOT}/proc"
+fi
+
+if ! mount_exists /dev; then
+	mount -o bind /dev "${CHROOT}/dev"
+fi
+
+if ! mount_exists /sys; then
+	mount -o bind /sys "${CHROOT}/sys"
+fi
+
+
+### Actual chroot call
 
 export PS1="(gentoo chroot) \w $ "
-chroot $DIR /bin/sh "$@"
+chroot "${CHROOT}" /bin/sh "$@"
 
-umount -f "$DIR/proc"
-umount -f "$DIR/dev"
-umount -f "$DIR/sys"
+### Umount stuff
+
+if [ -z "${KEEP_MOUNTS}" ]; then
+	umount -f "${CHROOT}/proc"
+	umount -f "${CHROOT}/dev"
+	umount -f "${CHROOT}/sys"
+fi

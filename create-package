@@ -1,7 +1,42 @@
 #!/bin/bash
 
-NAME="$1"
-DEST="$2"
+BOOTSTRAP_OPTIONS=""
+
+while (( "$#" )); do
+	case "$1" in
+		"--name")
+			NAME=$2
+			shift 2
+			;;
+		"--dest")
+			DEST=$2
+			shift 2
+			;;
+		"--pkg-hint")
+			PKG_HINT=$2
+			shift 2
+			;;
+		*)
+			# Options to pass to mk-labs-bootstrap from here on.
+			# This is not ideal since these options *must* be given
+			# after the ones above for this own script, but that
+			# should be the case in any normal situation
+			break
+			;;
+	esac
+done
+
+CYAN="\e[0;36m"
+RED="\e[0;31m"
+NORMAL="\e[0m"
+
+function info() {
+	echo -e "${CYAN}${1}${NORMAL}"
+}
+
+function warning() {
+	echo -e "${RED}${1}${NORMAL}"
+}
 
 which_path() {
 	./chroot-gentoo -c "which $1" 2>/dev/null
@@ -20,8 +55,6 @@ matching_packages() {
 if [ -z "$NAME" ]; then
 	echo "Usage: $0 <executable file>"
 	exit
-else
-	shift
 fi
 
 EXE=$(which_path "${NAME}")
@@ -29,32 +62,52 @@ EXE=$(which_path "${NAME}")
 if [ -z "${EXE}" ]; then
 
 	echo "-------------------------------------------------"
-	echo "'${NAME}' not found in the chroot system."
+	warning "'${NAME}' executable not found in the chroot system."
 
-	package=$(matching_packages "${NAME}")
-
-	if [ -z "$package" ]; then
-		echo "No package matching that name found, sorry."
-
-	elif [[ "$package" =~ $'\n' ]]; then
-		echo "More than one package matching that name was found, maybe you want one of them?"
-		echo "$package" | sed 's/^/  - /'
-		echo "If you want to install one of them, run ./chroot-gentoo -c 'emerge -v <package name>'"
+	if [ -n "${PKG_HINT}" ]; then
+		package="${PKG_HINT}"
 	else
-		echo "Found matching package ${package}."
-		echo "If you want to install it, run ./chroot-gentoo -c 'emerge -v ${package}'"
+		package=$(matching_packages "${NAME}")
 	fi
 
+
+	if [ -z "$package" ]; then
+		warning "No package matching that name found, sorry."
+		exit 1
+
+	elif [[ "$package" =~ $'\n' ]]; then
+		warning "More than one package matching that name was found, maybe you want one of them?"
+		echo "$package" | sed 's/^/  - /'
+		info "If you want to install one of them, run ./chroot-gentoo -c 'emerge -v <package name>'"
+		exit 1
+	else
+		info "Found matching package ${package}."
+		count=5
+		warning "Installing it in ${count} seconds, press Ctrl+C to abort!"
+		while ((count-- > 0)); do
+			echo -n "$((count+1))... "
+			sleep 1
+		done
+		echo -e "\nRunning ./chroot-gentoo -c 'emerge ${package}'"
+		./chroot-gentoo -c "emerge ${package}"
+	fi
+
+
+
 	echo "-------------------------------------------------"
-	exit 1
+
+	EXE=$(which_path "${NAME}")
+
+	if [ -z "${EXE}" ]; then
+		warning "Still not finding ${NAME}, don't know what more to do, sorry..."
+		exit
+	fi
 fi
 
 FILE="$(basename $EXE).tar.gz"
 
 if [ -z "$DEST" ]; then
 	DEST=$FILE
-else
-	shift
 fi
 
 (
@@ -62,7 +115,7 @@ fi
 
 	./mk-labs-bootstrap \
 		--package \
-		--chroot /root/labs-bootstrap/gentoo-chroot \
+		--chroot /root/labs-bootstrap/gentoo-stage3 \
 		--add-exe "$EXE" \
 		--dest "$DEST" \
 		"$@"

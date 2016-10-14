@@ -33,6 +33,9 @@ rnl_header() {
     header "RNL bootstrap initramfs ${VERSION} - $(uname -sr)"
 }
 
+trap "echo INT TERM" SIGINT SIGTERM
+trap "echo USR1" USR1 USR2
+
 # Create symlinks to all commands
 /bin/busybox --install -s
 

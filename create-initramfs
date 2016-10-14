@@ -19,7 +19,7 @@ EOF
 
 ./mk-labs-bootstrap \
 	--initramfs \
-	--chroot /root/labs-bootstrap/gentoo-chroot \
+	--chroot /root/labs-bootstrap/gentoo-stage3 \
 	--ssh-config ~/rnlinux/roles/ssh/files/etc/ssh/sshd_config \
 	--ssh-host-keys-dir ~/rnlinux/roles/ssh/files/etc/ssh \
 	--ssh-authorized-keys ~/rnlinux/roles/ssh/files/root/.ssh/authorized_keys \
