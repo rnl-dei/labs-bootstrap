@@ -12,7 +12,7 @@ $ cd labs-bootstrap
 $ make all
 ```
 
-Disclaimer: It still doesn't recreate the chroot and kernel, but this is a work in progress.
+This will take a while since it first has to download and setup a new gentoo stage3, and emerge the necessary packages.
 
 ## Quick How-to
 
@@ -41,25 +41,27 @@ This will create all already pre-defined packages in `/var/www/geminio/packages/
 The initramfs will get the packages from there automatically, nothing more neeeded to do.
 
 ### Create a new package
-For example to create a package for rsync.
+For example to create a package for rsync, just run the following:
+```
+$ make rsync
+...
+/var/www/geminio/packages/rsync.tar.gz created, enjoy!
+```
+The package should now be available for the initramfs like with pre-defined packages.
 
-First make sure the program is installed in the gentoo chroot, searching for the executable, or in a more exquisite way like this:
+In case the program isn't installed on the stage3, the script will try to guess the package needed and install it.
+In case the script can't guess, you can always chroot to the stage3 and do whatever needed.
 
+To find if the executable is installed you can run something like this like this:
 ```
 $ ./chroot-gentoo -c "which rsync"
 /usr/bin/rsync
 ```
 
 It's installed in this case, but if it was not, install it like you would normally do in a chrooted gentoo system.
-If you don't know this last words, just run the following:
-
 ```
 $ ./chroot-gentoo -c "emerge -av rsync"
-$ make rsync
-...
-/var/www/geminio/packages/rsync.tar.gz created, enjoy!
 ```
-The package should now be available for the initramfs like with pre-defined packages.
 
 ### Install a package
 
@@ -104,20 +106,28 @@ $ ./create-initramfs
 Wrapper of the `mk-labs-bootstrap` to simplify the creation of simple packages of one executable.
 
 ```
-./create-package <executable path> <archive path>
+./create-package --name <executable path> --dest <archive path>
 ```
 
-Example:
+Examples:
 ```sh
-$ ./create-package "/usr/sbin/lspci" "/var/www/geminio/packages/lspci.tar.gz"
+$ ./create-package --name "rsync" --dest "/var/www/geminio/packages/rsync.tar.gz"
+$ ./create-package --name "/usr/bin/scp --dest "/var/www/geminio/packages/scp.tar.gz"
+$ ./create-package --name "grub-install --dest "/var/www/geminio/packages/scp.tar.gz" --pkg-hint "grub"
 ```
+
+The `--name` argument can be the name of the executable to find in the stage3, or
+a direct path to it.
+
+The `--pkg-hint` is optional, and can be given when the script cannot guess the
+package from the executable name, like when these do not match.
 
 ### chroot-gentoo
 
-This is just a script to automate the usage of the chroot system, by mount and
-umountthe necessary stuff before and after running the actual chroot call.
+This is just a script to automate the setup and usage of the chroot system, by doing
+necessary the stuff before and after running the actual chroot call.
 
-This is used by other scripts the execute thigs insied the chroot, and is also
+This is used by other scripts the execute thigs inside the chroot, and is also
 for manual use, to compile/install the necessary stuff to use in the initramfs.
 
 Simply calling the script will spawn a `sh` shell:
@@ -126,10 +136,15 @@ $ ./chroot-gentoo
 (gentoo chroot) / $
 ```
 
-To execute only one command inside the chroot (to automate for example) it can be called like this:
+To execute only one command inside the chroot (to automate for example) it can be
+called like this:
 ```
 $ ./chroot-gentoo -c "uname -a"
 ```
+In case the stage3 (`gentoo-stage3` directory) doesn't exist or doesn't have a valid
+stage3, this script will download and extract a new one, and setup the necessary
+configurations and packages to be usable by the other scripts.
+
 ### Makefile / make
 
 This is the high-level interface to the framework, to simplify its usage primarly
@@ -159,6 +174,7 @@ List of all available Makefile targets.
  * initramfs - Create the functional initramfs (just calls ./create-initramfs).
  * packages - Creates the packages pre-defined in the Makefile.
  * all - Creates both initramfs and packages.
+ * stage3 - Checks if the stage3 is fine, creating a new one if it doesn't.
  * kernel - To be done.
  
 The pre-defined packages include the packages that have specific rules because of
@@ -171,12 +187,20 @@ of Makefiles may be advisable.
 
 ### scripts directory
 
-In the `scripts` directory are all scripts that are not meant to be called directly
-by you. Most are to be included unchanged in the final initramfs, but there may also
-be some to help creating the initramfs or packages.
+In the `scripts` directory are scripts that are not meant to be called directly
+by you. They are to be included unchanged in the final initramfs.
 
  * init.sh - **THE** init script that is called when the kernel finishes booting up.
  * profile.sh - Various alias and functions to improve the initramfs shell experience.
  * dhcp_script.sh - Called by busybox's udhcpc to set up the network settings.
  * completeScript.sh - Called by transmission when a torrents finishes.
+ 
+ ### helpers directory
+ 
+In the `helpers` directory are scripts and files to be used by other scripts to
+help create the initramfs or packages.
+
  * transmission_config_filter.awk - Used by the Makefile to adapt the labs transmission config to the initramfs.
+ * make.conf - Gentoo main config to copy to the stage3.
+ * gentoo-repos.conf - Other gentoo config to topy to the stage3.
+ * labs-bootstrap-kernel-config - Kernel config to be used in the stage3 kernel compilation.
