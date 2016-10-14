@@ -171,11 +171,11 @@ to simplify the recreation in the future.
 
 List of all available Makefile targets.
 
- * initramfs - Create the functional initramfs (just calls ./create-initramfs).
- * packages - Creates the packages pre-defined in the Makefile.
- * all - Creates both initramfs and packages.
- * stage3 - Checks if the stage3 is fine, creating a new one if it doesn't.
- * kernel - To be done.
+ * **initramfs** - Create the functional initramfs (just calls `create-initramfs`). Generates `labs-bootstrap-initramfs`.
+ * **packages** - Creates the packages pre-defined in the Makefile.
+ * **stage3** - Checks if the stage3 is fine, creating a new one if it doesn't.
+ * **kernel** - Compiles the kernel to be used by the initramfs. Generates `labs-bootstrap-kernel`.
+ * **all** - Creates both initramfs, packages and kernel.
  
 The pre-defined packages include the packages that have specific rules because of
 extra files, and other packages that are considered useful to have available like
