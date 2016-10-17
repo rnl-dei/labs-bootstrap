@@ -1,6 +1,30 @@
 #!/bin/bash
 
-BOOTSTRAP_OPTIONS=""
+CYAN="\e[0;36m"
+RED="\e[0;91m"
+NORMAL="\e[0m"
+
+function info() {
+	echo -e "${CYAN}${1}${NORMAL}"
+}
+
+function warning() {
+	echo -e "${RED}${1}${NORMAL}"
+}
+
+which_path() {
+	./chroot-gentoo -c "which $1" 2>/dev/null
+}
+
+matching_packages() {
+	OUT=$(./chroot-gentoo -c "eix --only-names --exact $1")
+
+	if [ -z "${OUT}" ]; then
+		OUT=$(./chroot-gentoo -c "eix --only-names $1")
+	fi
+
+	echo "$OUT"
+}
 
 while (( "$#" )); do
 	case "$1" in
@@ -26,36 +50,12 @@ while (( "$#" )); do
 	esac
 done
 
-CYAN="\e[0;36m"
-RED="\e[0;31m"
-NORMAL="\e[0m"
-
-function info() {
-	echo -e "${CYAN}${1}${NORMAL}"
-}
-
-function warning() {
-	echo -e "${RED}${1}${NORMAL}"
-}
-
-which_path() {
-	./chroot-gentoo -c "which $1" 2>/dev/null
-}
-
-matching_packages() {
-	OUT=$(./chroot-gentoo -c "eix --only-names --exact $1")
-
-	if [ -z "${OUT}" ]; then
-		OUT=$(./chroot-gentoo -c "eix --only-names $1")
-	fi
-
-	echo "$OUT"
-}
-
 if [ -z "$NAME" ]; then
 	echo "Usage: $0 <executable file>"
 	exit
 fi
+
+# Try to find the executable in the stage3
 
 EXE=$(which_path "${NAME}")
 
@@ -76,7 +76,7 @@ if [ -z "${EXE}" ]; then
 		exit 1
 
 	elif [[ "$package" =~ $'\n' ]]; then
-		warning "More than one package matching that name was found, maybe you want one of them?"
+		info "More than one package matching that name was found, maybe you want one of them?"
 		echo "$package" | sed 's/^/  - /'
 		info "If you want to install one of them, run ./chroot-gentoo -c 'emerge -v <package name>'"
 		exit 1
@@ -115,7 +115,7 @@ fi
 
 	./mk-labs-bootstrap \
 		--package \
-		--chroot /root/labs-bootstrap/gentoo-stage3 \
+		--chroot gentoo-stage3 \
 		--add-exe "$EXE" \
 		--dest "$DEST" \
 		"$@"

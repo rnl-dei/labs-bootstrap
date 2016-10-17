@@ -1,38 +1,58 @@
 PKG_DIR = "/var/www/geminio/packages"
 TRANSMISSION_CONFIG = "/root/rnlinux/roles/transmission/files/var/lib/transmission/.config/transmission/settings.json"
+CHROOT = "gentoo-stage3"
 
-PACKAGES = scp strace parted mkfs.ext4 lspci grub mpv
+# Pre-defined packages. This will be automatically created when running 'make packages' or 'make all'
+PACKAGES = scp strace parted mkfs.ext4 lspci grub transmission
 
 .PHONY: packages initramfs all
 
-all: initramfs packages
+help:
+	@echo "Run 'make all' if you really want to build everything."
+
+all: initramfs packages kernel
 
 initramfs:
 	@./create-initramfs
 
-stage3:
-	@./chroot-gentoo -c "true"
-
 packages: $(PACKAGES)
 
-# Generic rule
+# By running any command the script will generate the stage3 if it doesn't exist
+# This doesn't need to be in target 'all' or as a dependency since it is called by the other scripts
+stage3:
+	@./chroot-gentoo -c true
+
+# Compile the kernel inside the chroot and copy it here
+kernel:
+	./chroot-gentoo -c "emerge -uv gentoo-sources"
+	cp -f "helpers/labs-bootstrap-kernel-config" "$(CHROOT)/usr/src/linux/.config"
+	./chroot-gentoo -c "cd /usr/src/linux && make -j2"
+	cp -f "$(CHROOT)/usr/src/linux/arch/x86_64/boot/bzImage" labs-bootstrap-kernel
+
+# Generic rule for packages
 %:
 	@./create-package --name "$@" --dest $(PKG_DIR)/$@.tar.gz
 
+
+### Specific packages creation below ###
+
 lspci:
-	@./create-package --name "$@" --dest $(PKG_DIR)/$@.tar.gz --pkg-hint "pciutils" \
+	@./create-package --name "$@" --dest $(PKG_DIR)/$@.tar.gz --pkg-hint "sys-apps/pciutils" \
 		--add-file "/usr/share/misc/pci.ids.gz" "/usr/share/misc/pci.ids.gz"
 
 grub:
-	@./create-package --name "grub-install" --dest "${PKG_DIR}/$@.tar.gz" --pkg-hint "grub" \
+	@./create-package --name "grub-install" --dest "$(PKG_DIR)/$@.tar.gz" --pkg-hint "sys-boot/grub" \
 		--copy-dir "/usr/lib/grub" "/usr/lib/grub"
 
+# Not in the pre-defined packages because it takes long time to compile and obviosly
+# it is not really necessary to deploy the labs
 mpv:
 	@# Make sure the necessary mpv flags are set since mpv will be emerged
 	@# the first time this target runs in a new stage3
-	@mkdir -p "gentoo-stage3/etc/portage/profile/package.use.mask"
-	@echo "media-video/mpv -libcaca" > "gentoo-stage3/etc/portage/profile/package.use.mask/mpv"
-	@echo "media-video/mpv libcaca" >  "gentoo-stage3/etc/portage/package.use/mpv"
+	@mkdir -p "$(CHROOT)/etc/portage/profile/package.use.mask"
+	@echo "media-video/mpv -libcaca" > "$(CHROOT)/etc/portage/profile/package.use.mask/mpv"
+	@echo "media-video/mpv libcaca" >  "$(CHROOT)/etc/portage/package.use/mpv"
+	
 	@echo 'audio:x:1000:' > /tmp/audio_group
 	@./create-package --name "$@" --dest $(PKG_DIR)/$@.tar.gz \
 		--copy-dir "/usr/share/alsa" "/usr/share/alsa" \
@@ -40,12 +60,12 @@ mpv:
 	@rm -f /tmp/audio_group
 
 transmission:
-	@helpers/transmission_config_filter.awk "${TRANSMISSION_CONFIG}" > /tmp/transmission_settings.json
-
-	@./create-package --name "/usr/bin/transmission-daemon" --dest "${PKG_DIR}/$@.tar.gz" \
+	@helpers/transmission_config_filter.awk "$(TRANSMISSION_CONFIG)" > /tmp/transmission_settings.json
+	
+	@./create-package --name "/usr/bin/transmission-daemon" --dest "$(PKG_DIR)/$@.tar.gz" --pkg-hint "net-p2p/transmission" \
 		--copy-dir /usr/share/transmission/web /usr/share/transmission/web \
 		--add-external-file /tmp/transmission_settings.json /var/lib/transmission/settings.json \
-		--add-external-file /root/labs-bootstrap/scripts/completeScript.sh /completeScript.sh \
+		--add-external-file scripts/completeScript.sh /completeScript.sh \
 		--create-dir /torrents \
 		--create-dir /downloads \
 		--create-dir /incomplete \

@@ -102,56 +102,27 @@ PKG_EXECUTABLES=()
 declare -A COPY_DIRS COPY_EXTERNAL_DIRS EXTRA_FILES EXTRA_EXTERNAL_FILES
 
 while (( "$#" )); do
+
+	# Generic options
+	# Paths given here are relative to the chroot if used
 	case "$1" in
-		"--chroot")
-			CHROOT=$2
-			shift
-			;;
 		"--inside-chroot")
 			INSIDE_CHROOT=1
-			;;
-		"--ssh-config") # Outside chroot
-			SSH_CONFIG=$2
-			shift
-			;;
-		"--ssh-host-keys-dir") # Outside chroot
-			SSH_HOST_KEYS_DIR=$2
-			shift
-			;;
-		"--ssh-authorized-keys") # Outside chroot
-			SSH_AUTHORIZED_KEYS=$2
-			shift
-			;;
-		"--root-password")
-			ROOT_PASSWORD=$2
-			shift
-			;;
-		"--dest")
-			DESTINATION="$2"
-			shift
 			;;
 		"--add-exe") # Inside chroot
 			PKG_EXECUTABLES+=($2)
 			shift
 			;;
-		"--add-file")	# Inside chroot
+		"--add-file") # Inside chroot
 			EXTRA_FILES[$2]="$3"
 			shift 2
 			;;
-		"--copy-dir")	# Inside chroot
+		"--copy-dir") # Inside chroot
 			COPY_DIRS["$2"]="$3"
-			shift 2
-			;;
-		"--add-external-file")	# Outside chroot
-			EXTRA_EXTERNAL_FILES["$2"]="$3"
 			shift 2
 			;;
 		"--create-dir")
 			CREATE_DIRS+=($2)
-			shift
-			;;
-		"--add-ca")	# Outside chroot
-			CA_CERTIFICATES+=($2)
 			shift
 			;;
 		"--initramfs")
@@ -161,30 +132,72 @@ while (( "$#" )); do
 			ACTION=package
 			;;
 		*)
-			warning "Unknown option '$1'"
-			exit
+			# Non chroot only options
+			# Every path given to these options is outside the chroot
+			if [ -z "$INSIDE_CHROOT" ]; then
+
+				# Use realpath to obtain absolute paths from relative paths.
+				# It must be done here since below we will cd into the stage3
+				# and any relative path will be broken.
+				case "$1" in
+					"--chroot")
+						CHROOT="$(realpath $2)"
+						shift
+						;;
+					"--ssh-config") # Outside chroot
+						SSH_CONFIG="$(realpath $2)"
+						shift
+						;;
+					"--ssh-host-keys-dir") # Outside chroot
+						SSH_HOST_KEYS_DIR="$(realpath $2)"
+						shift
+						;;
+					"--ssh-authorized-keys") # Outside chroot
+						SSH_AUTHORIZED_KEYS="$(realpath $2)"
+						shift
+						;;
+					"--root-password")
+						ROOT_PASSWORD="$2"
+						shift
+						;;
+					"--add-ca") # Outside chroot
+						CA_CERTIFICATES+=($(realpath $2))
+						shift
+						;;
+					"--add-external-file") # Outside chroot
+						EXTRA_EXTERNAL_FILES["$2"]="$(realpath $3)"
+						shift 2
+						;;
+					"--dest") # Outside chroot
+						DESTINATION="$(realpath $2)"
+						shift
+						;;
+					*)
+						warning "Unknown option '$1'"
+						exit
+						;;
+				esac
+			fi
 			;;
 	esac
+
 	shift
 done
 
+if [ -z "$ACTION" ]; then
+	echo "Usage: $0 <options> (--initramfs|--package)"
+	exit
+fi
+
 case "$ACTION" in
 	initramfs)
-		if [ -n "$INSIDE_CHROOT" ]; then
-			:
-		elif [ -z "$DESTINATION" ]; then
+		if [ -z "$DESTINATION" -a -n "$INSIDE_CHROOT" ]; then
 			DESTINATION=$(realpath labs-bootstrap-initramfs)
-		else
-			DESTINATION="$(realpath $DESTINATION)"
 		fi
 		;;
 	package)
-		if [ -n "$INSIDE_CHROOT" ]; then
-			:
-		elif [ -z "$DESTINATION" ]; then
+		if [ -z "$DESTINATION" -a -n "$INSIDE_CHROOT" ]; then
 			DESTINATION=$(realpath pkg.tar.gz)
-		else
-			DESTINATION="$(realpath $DESTINATION)"
 		fi
 		;;
 	*)
@@ -192,11 +205,6 @@ case "$ACTION" in
 		exit
 		;;
 esac
-
-if [ -z "$ACTION" ]; then
-	echo "Usage: $0 <options> (--initramfs|--package)"
-	exit
-fi
 
 if [ -n "$INSIDE_CHROOT" ]; then
 	header " --- [mk-labs-bootstrap] chroot called with: $args ---"
@@ -251,6 +259,11 @@ if [ -z "$CHROOT" ]; then
 		else
 			warning "Cannot find $KEYMAP, **not setting default keymap**."
 		fi
+
+		# Copy timezone files
+		info "Setting timezone to $TIMEZONE."
+		cp "/usr/share/zoneinfo/$TIMEZONE" etc/localtime
+		echo "$TIMEZONE" > etc/timezone
 
 		# Needed for "graphical" terminal things
 		mkdir -p etc/terminfo/{l,x}
@@ -380,12 +393,6 @@ else
 	warning "No SSH config given. Shit will happen!"
 fi
 
-# Copy timezone files
-
-info "Setting timezone to $TIMEZONE."
-cp "/usr/share/zoneinfo/$TIMEZONE" etc/localtime
-echo "$TIMEZONE" > etc/timezone
-
 # Copy CA certificates
 
 if [ ${#CA_CERTIFICATES[*]} != 0 ]; then
@@ -401,6 +408,10 @@ fi
 # Copy package install script
 cp ${SCRIPTS_PATH}/emerge.sh bin/emerge
 chmod +x bin/emerge
+
+# Copy shutdown script
+cp ${SCRIPTS_PATH}/shutdown.sh bin/shutdown
+chmod +x bin/shutdown
 
 # Copy /etc/profile
 cp ${SCRIPTS_PATH}/profile.sh etc/profile

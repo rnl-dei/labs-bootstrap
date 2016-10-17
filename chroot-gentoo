@@ -27,7 +27,7 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 
 	rm -rf "${CHROOT}"
 	mkdir "${CHROOT}"
-	url="$(curl --silent "${STAGE3_URL}/latest-stage3-amd64-nomultilib.txt" | awk '/^[^#]/{print $1}')"
+	url="$(curl --silent "${STAGE3_URL}/latest-stage3-amd64-uclibc-vanilla.txt" | awk '/^[^#]/{print $1}')"
 	stage3_url="${STAGE3_URL}/${url}"
 
 	header "Downloading stage3"
@@ -42,7 +42,8 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 	echo "Copying /etc/resolv.conf"
 	cp "/etc/resolv.conf" "${CHROOT}/etc/resolv.conf"
 	echo "Setting vi/vim symlinks"
-	ln -s busybox "${CHROOT}/bin/{vi,vim}"
+	ln -s busybox "${CHROOT}/bin/vi"
+	ln -s busybox "${CHROOT}/bin/vim"
 
 	header "Setting up portage"
 
@@ -54,13 +55,44 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 
 	header "Installing maintenance packages"
 
+	"$0" -c "eix-sync"
 	"$0" -c "emerge eix genlop gentoolkit portage-utils"
-	"$0" -c "eix-update"
 
 	header "Done"
+
+elif [ -f "${CHROOT}/var/log/emerge.log" ]; then  # Check if the stage3 is too old
+
+	lastsync=$(awk '$3 == "Sync"{ts=$1}; END{sub(":","", ts); print ts}' "${CHROOT}/var/log/emerge.log")
+	lastupdate=$(awk '$2 == "***" && $3 == "emerge" && $0 ~ "--update" && $0 ~ "world" {ts=$1}; END{sub(":","", ts); print ts}' "${CHROOT}/var/log/emerge.log")
+	now=$(date +%s)
+	days_allowed=365
+
+	[ -z "$lastsync" ] && lastsync=0
+	[ -z "$lastupdate" ] && lastupdate=lastsync
+
+	if (( (now - lastsync) > (days_allowed * 86400) )) || (( (now - lastupdate) > (days_allowed * 86400) )); then
+		echo " ------------------------------------------------------------------------------------"
+		warning "More than $days_allowed days have passed since the last portage sync and/or world update."
+		warning "Either update the stage3, or delete it and run this again to generate a new one."
+		warning "I refuse to run in this conditions for your own good."
+		echo " ------------------------------------------------------------------------------------"
+		if (( "$#" )); then
+			echo "I still allow you to run $0 without arguments to enter the stage3 and update it."
+			exit
+		fi
+	fi
 fi
 
 ### Mount checks
+
+function is_another_chroot_is_running() {
+	# Yes, this is has a race-condition, but who cares in this case...
+	for pid in $(pidof sh); do
+		path=$(ls -ld "/proc/${pid}/root" | awk '{print $NF}')
+		[ "$path" = "$CHROOT" ] && return 0
+	done
+	return 1
+}
 
 function mount_exists() {
 	mount | grep "${CHROOT}${1}" >/dev/null
@@ -84,9 +116,9 @@ fi
 export PS1="(gentoo chroot) \w $ "
 chroot "${CHROOT}" /bin/sh "$@"
 
-### Umount stuff
+### Umount stuff if allowed
 
-if [ -z "${KEEP_MOUNTS}" ]; then
+if [ -z "${KEEP_MOUNTS}" ] && ! is_another_chroot_is_running ; then
 	umount -f "${CHROOT}/proc"
 	umount -f "${CHROOT}/dev"
 	umount -f "${CHROOT}/sys"

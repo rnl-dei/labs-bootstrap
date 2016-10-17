@@ -1,9 +1,10 @@
 #!/bin/sh
 
 FILE=labs-bootstrap-initramfs
+REPO=ansible_repo
 
 password=$(
-awk -f- /root/rnlinux/roles/users/vars/main.yml <<EOF
+awk -f- ${REPO}/roles/users/vars/main.yml <<EOF
 	BEGIN {
 		FS="'"; # Field Separator
 	}
@@ -19,10 +20,10 @@ EOF
 
 ./mk-labs-bootstrap \
 	--initramfs \
-	--chroot /root/labs-bootstrap/gentoo-stage3 \
-	--ssh-config ~/rnlinux/roles/ssh/files/etc/ssh/sshd_config \
-	--ssh-host-keys-dir ~/rnlinux/roles/ssh/files/etc/ssh \
-	--ssh-authorized-keys ~/rnlinux/roles/ssh/files/root/.ssh/authorized_keys \
+	--chroot gentoo-stage3 \
+	--ssh-config ${REPO}/roles/ssh/files/etc/ssh/sshd_config \
+	--ssh-host-keys-dir ${REPO}/roles/ssh/files/etc/ssh \
+	--ssh-authorized-keys ${REPO}/roles/ssh/files/root/.ssh/authorized_keys \
 	--root-password "$password" \
 	--add-ca "/usr/local/share/ca-certificates/RNLcacert.crt" \
 	--dest "$FILE" \
