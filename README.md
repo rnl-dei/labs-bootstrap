@@ -30,8 +30,15 @@ $ cd labs-boostrap
 $ make initramfs
 ```
 This should create the file `labs-bootstrap-initramfs`.
-Put this in the /boot of the machine, and as the initrd parameter of the grub entry, and it is done.
+Put this in the /boot of the machine, and as the `initrd parameter` of the grub entry, and it is done.
 
+### Create new kernel
+
+```sh
+$ make kernel
+```
+This should create the file `labs-bootstrap-kernel`.
+Put this in the /boot of the machine, and as the `kernel parameter` of the grub entry, and it is done.
 
 ### Create pre-defined packages
 ```
@@ -112,8 +119,8 @@ Wrapper of the `mk-labs-bootstrap` to simplify the creation of simple packages o
 Examples:
 ```sh
 $ ./create-package --name "rsync" --dest "/var/www/geminio/packages/rsync.tar.gz"
-$ ./create-package --name "/usr/bin/scp --dest "/var/www/geminio/packages/scp.tar.gz"
-$ ./create-package --name "grub-install --dest "/var/www/geminio/packages/scp.tar.gz" --pkg-hint "grub"
+$ ./create-package --name "/usr/bin/scp" --dest "/var/www/geminio/packages/scp.tar.gz"
+$ ./create-package --name "grub-install" --dest "/var/www/geminio/packages/scp.tar.gz" --pkg-hint "grub"
 ```
 
 The `--name` argument can be the name of the executable to find in the stage3, or
@@ -194,6 +201,7 @@ by you. They are to be included unchanged in the final initramfs.
  * profile.sh - Various alias and functions to improve the initramfs shell experience.
  * dhcp_script.sh - Called by busybox's udhcpc to set up the network settings.
  * completeScript.sh - Called by transmission when a torrents finishes.
+ * shutdown.sh - Installed as `shutdown` in PATH. To be called to do a clean shutdown.
  
  ### helpers directory
  
