@@ -13,5 +13,3 @@ sleep 5
 
 info "Starting Transmission"
 transmission-daemon --logfile /transmission.log --config-dir /var/lib/transmission
-
-rescue_shell

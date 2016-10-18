@@ -9,9 +9,6 @@ info "Downloading video.mp4"
 
 sleep 1
 mpv -vo caca video.mp4
-#mpv -vo null video.mp4
-
-rescue_shell
 
 clear
 info "bye bye..."
