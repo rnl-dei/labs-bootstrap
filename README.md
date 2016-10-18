@@ -1,4 +1,4 @@
-# Labs bootstrap initramfs
+# Labs bootstrap initramfs framework
 Framework to generate initramfs with the primary purpose of deploying new base images to our labs, or "How I accidentally created a Linux distribution".
 
 ## Emergency guide
@@ -203,7 +203,7 @@ by you. They are to be included unchanged in the final initramfs.
  * completeScript.sh - Called by transmission when a torrents finishes.
  * shutdown.sh - Installed as `shutdown` in PATH. To be called to do a clean shutdown.
  
- ### helpers directory
+### helpers directory
  
 In the `helpers` directory are scripts and files to be used by other scripts to
 help create the initramfs or packages.
@@ -212,3 +212,49 @@ help create the initramfs or packages.
  * make.conf - Gentoo main config to copy to the stage3.
  * gentoo-repos.conf - Other gentoo config to topy to the stage3.
  * labs-bootstrap-kernel-config - Kernel config to be used in the stage3 kernel compilation.
+ 
+## Webserver
+ 
+ Altough the initramfs can function standalone, it was made with the purpose of
+ relying on a webserver for on-the-fly customization, so that the initramfs doesn't
+ need to be updated to do new stuff, and even install and run new software.
+ 
+### Packages
+
+When the initramfs tries to install a new package it tries `<server>/packages/<package name>.tar.gz`.
+
+The Makefile has the variable `PKG_DIR` that defines where it should put new packages.
+This variable should have the root directory of the URL above.
+  
+### do.sh
+
+After the init script finishes booting, and before it enter the login loop, it
+downlaods `<server>/do.sh`, and sources it. Therefore, this URL should return an
+`sh` script, that can call the init script functions, and either can finish or
+enter an endless loop that never returns.
+
+Since this script os download each time, it can be used to change the actions the
+initramfs perform each time, and accordingly to the machine that runs it.
+
+This repository includes the php file to be called by the do.sh URL. It can done
+in nginx like this:
+```
+       location /do.sh {
+                alias /var/www/geminio/do.php;
+                fastcgi_pass php;
+                include fastcgi.conf;
+        }
+```
+
+This php script reads a rules file `bootstrap_rules.txt`, that instructs what script
+to return, depending on the name of the machine, and arguments given grom the grub
+cmd line. The init script includes all kernel boot options in the do.sh URL, like
+`/do.sh?option1&option2=value2&option3`.
+
+The scripts included in the directory `webroot/scripts` are the following:
+
+ * nop.sh - Do nothing (Therefore, the login shell should appear).
+ * shell.sh - Open a shell without login (Exiting this will require login).
+ * deploy.sh - Linux base image deploy by bittorrent using transmission.
+ * prank.sh - Installs mpv and plays video from <server>/files/video.mp4, reboots when it ends.
+ * error.sh - If something worng happens in do.php, should show the error cause.
