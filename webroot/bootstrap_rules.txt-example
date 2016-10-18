@@ -1,0 +1,16 @@
+# Order matters, first rule to match wins
+# Syntax:
+#  hostname	<regex>		<script name>
+#  option	<name>		<script name>
+
+option		prank		prank.sh
+
+hostname 	kevin		deploy.sh
+
+hostname	stuart		shell.sh
+
+hostname	lab14p1		nop.sh
+
+hostname	lab13		nop.sh
+
+hostname	lab		nop.sh
