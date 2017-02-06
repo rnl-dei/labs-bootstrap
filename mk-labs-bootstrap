@@ -165,7 +165,7 @@ while (( "$#" )); do
 						shift
 						;;
 					"--add-external-file") # Outside chroot
-						EXTRA_EXTERNAL_FILES["$2"]="$(realpath $3)"
+						EXTRA_EXTERNAL_FILES["$(realpath $2)"]="$(realpath $3)"
 						shift 2
 						;;
 					"--dest") # Outside chroot
