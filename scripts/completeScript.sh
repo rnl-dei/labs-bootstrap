@@ -3,7 +3,7 @@
 # Se corre sem argumentos corre a si próprio dentro de um tmux
 
 if [ -z $1 ] ; then
-        tmux new-session -d -s cenas 'bash completeScript.sh loles'
+        tmux new-session -S /tmux_socket -d -s cenas 'bash completeScript.sh loles'
         exit
 fi
 
