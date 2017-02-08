@@ -18,3 +18,5 @@ if [ -n "$script" ]; then
 else
 	echo "Cannot find run.sh in /downloads"
 fi
+
+bash
