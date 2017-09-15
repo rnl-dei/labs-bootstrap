@@ -11,7 +11,9 @@ alias vim=vi
 alias wget="/bin/wget"
 
 alias poweroff="shutdown poweroff"
-alias reboot="shutdown reboot"
+#alias reboot="shutdown reboot" # doesn't work
+alias reboot='echo s > /proc/sysrq-trigger; sleep 2; echo u > /proc/sysrq-trigger; sleep 2; echo b > /proc/sysrq-trigger'
+
 
 alias scp="install_and_run scp"
 alias strace="install_and_run strace"
