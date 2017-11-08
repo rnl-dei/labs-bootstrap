@@ -1,0 +1,4 @@
+# <file system> <mount point>   <type>  <options>		<dump>	<pass>
+/dev/sda3	/		ext4	errors=remount-ro	0       1
+/dev/sda7	/mnt/DFS	ext4	nofail,rw,noexec,nosuid,noatime	0	0
+
