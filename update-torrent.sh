@@ -1,4 +1,5 @@
 #!/bin/bash
+## FIXME: This script is dirty and needs cleaning, sorry. - Jorge Heleno
 
 function show_help() {
   printf "Usage: test torrent_file [-o|--output filename]\n"
