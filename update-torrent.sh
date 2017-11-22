@@ -9,6 +9,7 @@ function show_help() {
 [[ $1 == "-h" || $1 == "--help" ]]  && show_help && exit
 FILE=$1
 OUTPUTDIR="/var/lib/transmission/Downloads"
+TORRENTDIR="/var/lib/transmission/.config/transmission/torrents"
 
 
 [[ -z $FILE ]] && show_help && exit
@@ -18,6 +19,7 @@ function replace_torrent {
 
   echo "filename is $1"
   echo "output is $2"
+  echo "torrent dir is $3"
 
   [[ -e "$2/$1" ]] && printf "File $2/$1 exists. Do you want to continue? [Ctrl-c to exit]\n" && read && rm -rf "$2/$1" && rm -f "/var/lib/transmission/torrents/${1}.torrent"
 
@@ -27,28 +29,7 @@ function replace_torrent {
   cp -r $1 $2
   chown transmission:transmission $2/$1 -R
   chmod 777 "${1}.torrent"
-#rm /var/lib/transmission/torrents/deploy.torrent* -f
-
-#transmission-create -p -o deploy.torrent -t udp://tracker.rnl.tecnico.ulisboa.pt:31000 1617.2_42.2
-
-
-##transmission-create -p -o deploy.torrent -t udp://tracker.rnl.tecnico.ulisboa.pt:31000 old_1617.2_42.2   old partition table
-
-#cp -r 1617.2_42.2 /var/lib/transmission/Downloads
-
-
-##cp -r old_1617.2_42.2  /var/lib/transmission/Downloads  old torrent
-
-#chown transmission:transmission /var/lib/transmission/Downloads/ -R
-
-#chown transmission:transmission deploy.torrent
-#chmod 777 deploy.torrent
-
-#cp deploy.torrent /var/www/geminio/deploy.torrent
-#cp deploy.torrent /var/lib/transmission/torrents
-
-
-
+  cp "${1}.torrent" "$3"
 }
 
 case "$1" in
@@ -76,6 +57,6 @@ if [[ -z $FILE ]];then
   exit
 fi
 
-replace_torrent $FILE $OUTPUTDIR
+replace_torrent $FILE $OUTPUTDIR $TORRENTDIR
 
 
