@@ -3,8 +3,8 @@
 # Se corre sem argumentos corre a si próprio dentro de um tmux
 
 if [ -z $1 ] ; then
-	mkdir /tmp
-        tmux new-session -d -s cenas 'bash completeScript.sh loles'
+        mkdir /tmp
+        tmux new-session -d -s cenas 'sh completeScript.sh loles'
         exit
 fi
 
