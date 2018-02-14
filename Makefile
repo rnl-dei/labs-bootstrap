@@ -1,6 +1,7 @@
 PKG_DIR = "/var/www/geminio/packages"
-TRANSMISSION_CONFIG = "/root/rnlinux/roles/transmission/files/var/lib/transmission/.config/transmission/settings.json"
+TRANSMISSION_CONFIG = "/root/ansible-rework/roles/transmission/files/var/lib/transmission/.config/transmission/settings.json"
 CHROOT = "gentoo-stage3"
+REPO="/root/ansible-rework"
 
 # Pre-defined packages. This will be automatically created when running 'make packages' or 'make all'
 PACKAGES = scp strace parted mkfs.ext4 lspci grub transmission
@@ -60,7 +61,8 @@ mpv:
 	@rm -f /tmp/audio_group
 
 transmission:
-	@helpers/transmission_config_filter.awk "$(TRANSMISSION_CONFIG)" > /tmp/transmission_settings.json
+	@ansible all -i localhost, -c local -m template -a "src=$(REPO)/roles/transmission/templates/settings.json.j2 dest=/dev/shm/settings.json" --extra-vars=@/root/ansible-rework/roles/transmission/vars/main.yml
+	@helpers/transmission_config_filter.awk "/dev/shm/settings.json" > /tmp/transmission_settings.json
 	
 	@./create-package --name "/usr/bin/transmission-daemon" --dest "$(PKG_DIR)/$@.tar.gz" --pkg-hint "net-p2p/transmission" \
 		--copy-dir /usr/share/transmission/web /usr/share/transmission/web \
