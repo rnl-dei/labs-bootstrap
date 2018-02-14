@@ -20,6 +20,7 @@ alias reboot='echo s > /proc/sysrq-trigger; sleep 2; echo u > /proc/sysrq-trigge
 alias scp="install_and_run scp"
 alias strace="install_and_run strace"
 alias htop="install_and_run htop"
+alias tmux="install_and_run tmux"
 
 install_and_run() {
 	prog="$1"
