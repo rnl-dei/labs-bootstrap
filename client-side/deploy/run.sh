@@ -6,6 +6,7 @@ logfile=deploy.log
 redo_partitions=false
 redo_windows=false
 redo_linux=false
+disk=/dev/sda
 
 case "$1" in
   "--redo-all")
@@ -16,14 +17,24 @@ case "$1" in
     ;;
   "--redo-partitions")
     redo_partitions=true
+    redo_windows=false
+    redo_linux=false
     shift
     ;;
   "--redo-windows")
     redo_windows=true
+    redo_linux=false
+    redo_partitions=false
     shift
     ;;
   "--redo-linux")
     redo_linux=true
+    redo_partitions=false
+    redo_windows=false
+    shift
+    ;;
+  "--disk")
+    disk=$2
     shift
     ;;
   *)
@@ -32,27 +43,39 @@ case "$1" in
     ;;
 esac
 
+if [ ! -b $disk ];then
+	echo "Invalid block device $disk" && exit
+fi
 
-if [[ $redo_partitions  ]];then
-  echo Making Partition table | tee -a $logfile
+echo -e "Configs are:\nRedo windows: ${redo_windows}\nRedo linux: ${redo_linux}\nRedo partitions: ${redo_partitions}\nDisk: $disk" | tee -a $logfile
+
+if  $redo_partitions  ;then
+  echo Making Partition table  | tee -a $logfile
   parted -s /dev/sda -- mklabel msdos 2>&1 | tee -a $logfile
 
-  echo Creating Linux Partition  | tee -a $logfile
   parted -s /dev/sda -- mkpart primary ext3 2048s 2734079s
   parted -s /dev/sda -- mkpart primary ext2 2736128s 3123199s
+  echo Creating Windows Partition  | tee -a $logfile
   parted -s /dev/sda -- mkpart primary ntfs 3125248s 354686975s
+  parted -s /dev/sda -- set 3 "boot" "on" # set boot flag for windows partition
   parted -s /dev/sda -- mkpart extended 354686976s -1s
   parted -s /dev/sda -- mkpart logical linux-swap 354689024s 358594559s
+  echo Creating Linux Partition  | tee -a $logfile
   parted -s /dev/sda -- mkpart logical ext4 358596608s 768555007s
+  echo Creating DFS Partition  | tee -a $logfile
   parted -s /dev/sda -- mkpart logical ext4 768751616s -1s
+fi
+
+if $redo_windows ;then
+  echo Creating Windows Partition  | tee -a $logfile
+  parted -s /dev/sda -- mkpart primary ntfs 3125248s 354686975s
   parted -s /dev/sda -- set 3 "boot" "on" # set boot flag for windows partition
 fi
 
-
 echo Make filesystems  | tee -a $logfile
 
-if [[ $redo_linux ]];then
-  echo Making SDA3 Filesystem  | tee -a $logfile
+if $redo_linux ;then
+  echo Making SDA6 Filesystem  | tee -a $logfile
   mkfs.ext4 -F /dev/sda6 2>&1 | tee -a $logfile
 
   echo Making SDA7 Filesystem  | tee -a $logfile
@@ -78,14 +101,6 @@ if [[ $redo_linux ]];then
 
   echo Copying FSTAB  | tee -a $logfile
   cp fstab /mnt/suse/etc/fstab 2>&1 | tee -a $logfile
-
-  echo Adding Ansible Service
-  cp ansible.service /mnt/suse/etc/systemd/system/ansible.service 2>&1 | tee -a $logfile
-
-  #echo Copy Initial Deploy script
-  #mkdir -p /mnt/suse/usr/lib/ansible | tee -a $logfile
-  #cp ansible.sh /mnt/suse/usr/lib/ansible/ansible.sh 2>&1 | tee -a $logfile
-  #cp nologin /mnt/suse/etc/nologin 2>&1 | tee -a $logfile
 
   echo Creating PROC directory  | tee -a $logfile
   mkdir -p /mnt/suse/proc 2>&1 | tee -a $logfile
@@ -113,13 +128,7 @@ if [[ $redo_linux ]];then
   chroot /mnt/suse /usr/sbin/grub2-mkconfig -o /boot/grub2/grub.cfg 2>&1 | tee -a $logfile
   chroot /mnt/suse /usr/bin/grub2-editenv - set count=0 2>&1 | tee -a $logfile
 
-  echo Enabling Ansible Service on Boot
-#chroot /mnt/suse zypper --non-interactive in tmux 2>&1 | tee -a $logfile
-#chroot /mnt/suse systemctl enable ansible.service 2>&1 | tee -a $logfile
-
   echo "Umount /mnt/suse"
-#  umount -R /mnt/suse/proc 2>&1 | tee -a $logfile
-  #temporary fix for rebooting, sleep needed to give time to execute operation
   echo s > /proc/sysrq-trigger
   sleep 1
   echo u > /proc/sysrq-trigger
