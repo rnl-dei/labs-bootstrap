@@ -74,7 +74,7 @@ else
 fi
 
 info "Adding extra subnet route ${EXTRA_SUBNET}"
-ip r add "${EXTRA_SUBNET}" dev eth0
+ip route add "${EXTRA_SUBNET}" dev eth0
 
 info "Starting SSH server"
 /bin/sshd -E /sshd.log
@@ -88,8 +88,12 @@ args="$(cat /proc/cmdline | sed 's/ /\&/g')"
 info "Downloading script do.sh"
 /bin/wget --no-verbose "${SERVER_URL}/do.sh?${args}" -O do.sh
 
-info "Executing script"
-source do.sh
+if [ -f do.sh ]; then
+	error "Executing script"
+	source do.sh
+else
+	error "Could not find do.sh"
+fi
 
 while :; do
     echo

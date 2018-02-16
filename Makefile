@@ -1,10 +1,12 @@
 PKG_DIR = "/var/www/geminio/packages"
-TRANSMISSION_CONFIG = "/root/ansible-rework/roles/transmission/files/var/lib/transmission/.config/transmission/settings.json"
 CHROOT = "gentoo-stage3"
 REPO="/root/ansible-rework"
 
 # Pre-defined packages. This will be automatically created when running 'make packages' or 'make all'
-PACKAGES = scp strace parted mkfs.ext4 lspci grub transmission
+PACKAGES = scp parted mkfs.ext4 lspci grub transmission tmux
+
+# Packages that may be usefull but not are needed for the deploy
+EXTRA_PACKAGES = htop ping rsync screen strace bash amixer alsamixer mpv
 
 .PHONY: packages initramfs all
 
@@ -17,6 +19,8 @@ initramfs:
 	@./create-initramfs
 
 packages: $(PACKAGES)
+
+extra_packages: $(EXTRA_PACKAGES)
 
 # By running any command the script will generate the stage3 if it doesn't exist
 # This doesn't need to be in target 'all' or as a dependency since it is called by the other scripts
@@ -44,6 +48,12 @@ lspci:
 grub:
 	@./create-package --name "grub-install" --dest "$(PKG_DIR)/$@.tar.gz" --pkg-hint "sys-boot/grub" \
 		--copy-dir "/usr/lib/grub" "/usr/lib/grub"
+
+screen:
+	@./create-package --name "$@" --dest $(PKG_DIR)/$@.tar.gz --pkg-hint "app-misc/screen"
+
+amixer:
+	@./create-package --name "$@" --dest $(PKG_DIR)/$@.tar.gz --pkg-hint "media-sound/alsa-utils"
 
 # Not in the pre-defined packages because it takes long time to compile and obviosly
 # it is not really necessary to deploy the labs

@@ -27,7 +27,7 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 
 	rm -rf "${CHROOT}"
 	mkdir "${CHROOT}"
-	url="$(curl --silent "${STAGE3_URL}/latest-stage3-amd64-uclibc-vanilla.txt" | awk '/^[^#]/{print $1}')"
+	url="$(curl --silent "${STAGE3_URL}/latest-stage3-amd64-nomultilib.txt" | awk '/^[^#]/{print $1}')"
 	stage3_url="${STAGE3_URL}/${url}"
 
 	header "Downloading stage3"
@@ -52,11 +52,15 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 	cp "${BASE_DIR}/helpers/gentoo-repos.conf" "${CHROOT}/etc/portage/repos.conf"
 
 	"$0" -c "emerge-webrsync"
+	"$0" -c "emerge --sync"
+
+	header "Updating packages for static binaries"
+	"$0" -c "emerge -1 net-misc/wget net-misc/openssh"
 
 	header "Installing maintenance packages"
 
-	"$0" -c "eix-sync"
 	"$0" -c "emerge eix genlop gentoolkit portage-utils"
+	"$0" -c "eix-update"
 
 	header "Done"
 
@@ -110,6 +114,14 @@ if ! mount_exists /sys; then
 	mount -o bind /sys "${CHROOT}/sys"
 fi
 
+if ! mount_exists /dev/pts; then
+	mount -o bind /dev/pts "${CHROOT}/dev/pts"
+fi
+
+if ! mount_exists /dev/shm; then
+	mount -o bind /dev/shm "${CHROOT}/dev/shm"
+fi
+
 
 ### Actual chroot call
 
@@ -120,6 +132,8 @@ chroot "${CHROOT}" /bin/sh "$@"
 
 if [ -z "${KEEP_MOUNTS}" ] && ! is_another_chroot_is_running ; then
 	umount -f "${CHROOT}/proc"
+	umount -f "${CHROOT}/dev/pts"
+	umount -f "${CHROOT}/dev/shm"
 	umount -f "${CHROOT}/dev"
 	umount -f "${CHROOT}/sys"
 fi

@@ -4,6 +4,15 @@ WORK_DIR="/tmp/labs-bootstrap"
 KEYMAP="/usr/share/keymaps/i386/qwerty/pt-latin1.map.gz"
 TIMEZONE="Europe/Lisbon"
 
+# busybox - base system tools
+# sshd - SSH server
+# wget - needed for HTTPS downloads (busybox wget does not support it)
+BASE_EXES="/bin/busybox /usr/sbin/sshd /usr/bin/wget"
+
+# Libs to allow DNS resolving that ldd does not
+# show because libc loads them on-the-fly
+BASE_LIBS="/lib64/libnss_dns.so.2 /lib64/libnss_files.so.2"
+
 CYAN="\e[0;36m"
 RED="\e[0;31m"
 YELLOW="\e[33m"
@@ -240,17 +249,9 @@ if [ -z "$CHROOT" ]; then
 
 		# Setup minimal system
 		mkdir -p bin sbin dev etc proc sys run lib64 mnt
-		#cp -a /dev/{null,console,tty} dev/
-		add_exe /bin/busybox
 
-		add_exe /usr/sbin/sshd
-
-		# Needed for HTTPS downloads
-		add_exe /usr/bin/wget
-
-		# Libs to allow DNS resolving that ldd does not
-		# show because libc loads them on-the-fly
-		add_libs /lib64/libnss_{dns,files}.so.2
+		add_exe $BASE_EXES
+		add_libs $BASE_LIBS
 
 		# Copy keymap
 		if [ -e $KEYMAP ]; then
