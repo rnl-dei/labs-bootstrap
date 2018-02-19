@@ -87,7 +87,7 @@ if $redo_linux ;then
 
   echo Mouting chroot dir  | tee -a $logfile
   mount /dev/sda6 /mnt/suse 2>&1 | tee -a $logfile
-  tar xf root.tar.xz -C /mnt/suse 2>&1 | tee -a $logfile
+  tar xf root.tar.gz -C /mnt/suse 2>&1 | tee -a $logfile
 
   echo Removing grub files  | tee -a $logfile
   rm -f /mnt/suse/etc/grub.d/05_suse_theme 2>&1 | tee -a $logfile
