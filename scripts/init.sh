@@ -90,7 +90,7 @@ info "Downloading script do.sh"
 
 if [ -f do.sh ]; then
 	error "Executing script"
-	source do.sh
+	source "do.sh"
 else
 	error "Could not find do.sh"
 fi

@@ -18,7 +18,7 @@ awk -f- ${REPO}/roles/users/vars/main.yml <<EOF
 EOF
 )
 
-ansible all -i localhost, -c local -m template -a "src=${REPO}/roles/ssh/templates/sshd_config.j2 dest=/dev/shm/sshd_config" --extra-vars=@/root/ansible-rework/roles/ssh/vars/main.yml
+ansible all -i localhost, -c local -m template -a "src=${REPO}/roles/ssh/templates/sshd_config.j2 dest=/dev/shm/sshd_config" --extra-vars=@${REPO}/roles/ssh/vars/main.yml
 
 ./mk-labs-bootstrap \
 	--initramfs \

@@ -1,6 +1,6 @@
 PKG_DIR = "/var/www/geminio/packages"
 CHROOT = "gentoo-stage3"
-REPO="/root/ansible-rework"
+REPO="ansible_repo"
 
 # Pre-defined packages. This will be automatically created when running 'make packages' or 'make all'
 PACKAGES = scp parted mkfs.ext4 lspci grub transmission tmux
@@ -63,7 +63,6 @@ mpv:
 	@mkdir -p "$(CHROOT)/etc/portage/profile/package.use.mask"
 	@echo "media-video/mpv -libcaca" > "$(CHROOT)/etc/portage/profile/package.use.mask/mpv"
 	@echo "media-video/mpv libcaca" >  "$(CHROOT)/etc/portage/package.use/mpv"
-	
 	@echo 'audio:x:1000:' > /tmp/audio_group
 	@./create-package --name "$@" --dest $(PKG_DIR)/$@.tar.gz \
 		--copy-dir "/usr/share/alsa" "/usr/share/alsa" \
@@ -73,7 +72,6 @@ mpv:
 transmission:
 	@ansible all -i localhost, -c local -m template -a "src=$(REPO)/roles/transmission/templates/settings.json.j2 dest=/dev/shm/settings.json" --extra-vars=@/root/ansible-rework/roles/transmission/vars/main.yml
 	@helpers/transmission_config_filter.awk "/dev/shm/settings.json" > /tmp/transmission_settings.json
-	
 	@./create-package --name "/usr/bin/transmission-daemon" --dest "$(PKG_DIR)/$@.tar.gz" --pkg-hint "net-p2p/transmission" \
 		--copy-dir /usr/share/transmission/web /usr/share/transmission/web \
 		--add-external-file /tmp/transmission_settings.json /var/lib/transmission/settings.json \

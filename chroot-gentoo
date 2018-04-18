@@ -122,7 +122,6 @@ if ! mount_exists /dev/shm; then
 	mount -o bind /dev/shm "${CHROOT}/dev/shm"
 fi
 
-
 ### Actual chroot call
 
 export PS1="(gentoo chroot) \w $ "
