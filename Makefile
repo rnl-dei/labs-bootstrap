@@ -1,4 +1,4 @@
-PKG_DIR = "/var/www/geminio/packages"
+PKG_DIR = "/var/www/deploy/webroot/packages"
 CHROOT = "gentoo-stage3"
 REPO="ansible_repo"
 
