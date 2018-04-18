@@ -8,7 +8,7 @@ PACKAGES = scp parted mkfs.ext4 lspci grub transmission tmux
 # Packages that may be usefull but not are needed for the deploy
 EXTRA_PACKAGES = htop ping rsync screen strace bash amixer alsamixer mpv
 
-.PHONY: packages initramfs all
+.PHONY: packages extra_packages initramfs all
 
 help:
 	@echo "Run 'make all' if you really want to build everything."
