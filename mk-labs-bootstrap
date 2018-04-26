@@ -410,8 +410,12 @@ fi
 cp ${SCRIPTS_PATH}/emerge.sh bin/emerge
 chmod +x bin/emerge
 
-# Copy shutdown script
-cp ${SCRIPTS_PATH}/shutdown.sh bin/shutdown
+# Copy shutdown scripts
+cp ${SCRIPTS_PATH}/reboot.sh bin/reboot
+chmod +x bin/reboot
+cp ${SCRIPTS_PATH}/poweroff.sh bin/poweroff
+chmod +x bin/poweroff
+cp ${SCRIPTS_PATH}/poweroff.sh bin/shutdown
 chmod +x bin/shutdown
 
 # Copy /etc/profile

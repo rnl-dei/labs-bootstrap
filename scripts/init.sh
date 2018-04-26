@@ -1,6 +1,6 @@
 #!/bin/busybox sh
 
-VERSION="0.9.9.8"
+VERSION="1.0.0"
 SERVER_URL="https://geminio.rnl.tecnico.ulisboa.pt"
 NTP_SERVER="ntp.rnl.tecnico.ulisboa.pt"
 
@@ -17,7 +17,7 @@ rescue_shell() {
     setsid cttyhack login -f root
 }
 
-info() {
+msg() {
     echo -e "${CYAN} * ${1}${NORMAL}"
 }
 
@@ -64,7 +64,7 @@ echo 32 > /proc/sys/net/ipv4/ip_default_ttl
 
 rnl_header
 
-info "Starting DHCP client"
+msg "Starting DHCP client"
 udhcpc 2>/dev/null | grep "\(Lease\|Adding\)"
 
 if ip route | grep 193.136.154.0/25; then
@@ -73,30 +73,29 @@ else
 	EXTRA_SUBNET="193.136.154.0/25"
 fi
 
-info "Adding extra subnet route ${EXTRA_SUBNET}"
+msg "Adding extra subnet route ${EXTRA_SUBNET}"
 ip route add "${EXTRA_SUBNET}" dev eth0
 
-info "Starting SSH server"
+msg "Starting SSH server"
 /bin/sshd -E /sshd.log
 
-info "Starting NTP client"
+msg "Starting NTP client"
 ntpd -q -p "${NTP_SERVER}"
 
-# Convert boot arguments to GET equery syntax
+# Convert boot arguments to GET query syntax
 args="$(cat /proc/cmdline | sed 's/ /\&/g')"
 
-info "Downloading script do.sh"
+msg "Downloading script do.sh"
 /bin/wget --no-verbose "${SERVER_URL}/do.sh?${args}" -O do.sh
 
 if [ -f do.sh ]; then
 	error "Executing script"
-	source "do.sh"
+	source ./do.sh
 else
 	error "Could not find do.sh"
 fi
 
 while :; do
-    echo
-    rnl_header
-    setsid cttyhack login
+	echo
+	rescue_shell
 done
