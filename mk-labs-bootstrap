@@ -56,7 +56,7 @@ function add_libs() {
 
 		if [ ! -e $lib ]; then
 			warning "$lib not found on the current system, aborting."
-			exit
+			exit 1
 		fi
 
 		info "Adding library $lib"
@@ -72,7 +72,7 @@ function add_exe() {
 
 		if [ ! -e $exe ]; then
 			warning "$exe not found on the current system, aborting."
-			exit
+			exit 1
 		fi
 
 		if [[ "$(ldd "${exe}")" = *"not a dynamic executable"* ]]; then
@@ -99,7 +99,7 @@ function show_stats() {
 
 if [[ $EUID -ne 0 ]]; then
 	echo "This script must be run as root"
-	exit
+	exit 1
 fi
 
 OWN_PATH="$(dirname $(realpath $0))"
@@ -183,7 +183,7 @@ while (( "$#" )); do
 						;;
 					*)
 						warning "Unknown option '$1'"
-						exit
+						exit 1
 						;;
 				esac
 			fi
@@ -195,7 +195,7 @@ done
 
 if [ -z "$ACTION" ]; then
 	echo "Usage: $0 <options> (--initramfs|--package)"
-	exit
+	exit 1
 fi
 
 case "$ACTION" in
@@ -211,7 +211,7 @@ case "$ACTION" in
 		;;
 	*)
 		warning "Unknown action '$ACTION'"
-		exit
+		exit 1
 		;;
 esac
 
@@ -345,7 +345,7 @@ if [ "$ACTION" = "package" ]; then
 	tar cvzf "$DESTINATION" -C "${WORK_DIR}" . | quote_output
 	info "Done"
 	show_stats
-	exit # package creatin terminates the script here
+	exit # package creation terminates the script here
 fi
 
 ###### Stuff to to outside the chroot only for initramfs #######################
@@ -356,7 +356,7 @@ info "Setting root user and password."
 echo "root:x:0:0:root:/root:/bin/sh" > etc/passwd
 
 if [ -n "$ROOT_PASSWORD" ]; then
-	hashed_password=$(echo "$ROOT_PASSWORD" | openssl passwd -1 -salt "weeee" -stdin)
+	hashed_password=$(echo "$ROOT_PASSWORD" | openssl passwd -1 -stdin)
 else
 	hashed_password="!"
 	warning "Root password not defined. You will not be able to login locally!"

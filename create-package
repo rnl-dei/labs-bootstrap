@@ -104,10 +104,8 @@ if [ -z "${EXE}" ]; then
 	fi
 fi
 
-FILE="$(basename $EXE).tar.gz"
-
 if [ -z "$DEST" ]; then
-	DEST=$FILE
+	DEST="${NAME}.tar.gz"
 fi
 
 (
@@ -124,5 +122,5 @@ fi
 if [ $? = 0 ]; then
 	echo -e "$DEST created, enjoy!"
 else
-	echo e "Something wrong probably happened with ${EXE}, sorry..."
+	echo -e "Something wrong probably happened with ${EXE}, sorry..."
 fi

@@ -1,38 +1,23 @@
 #!/bin/sh
 
 FILE=labs-bootstrap-initramfs
-REPO=ansible_repo
 
-password=$(
-awk -f- ${REPO}/roles/users/vars/main.yml <<EOF
-	BEGIN {
-		FS="'"; # Field Separator
-	}
-	/name: 'root'/{
-		user=1;
-	}
-	user && /password/ {
-		print \$2;
-		exit;
-	}
-EOF
-)
-
-ansible all -i localhost, -c local -m template -a "src=${REPO}/roles/ssh/templates/sshd_config.j2 dest=/dev/shm/sshd_config" --extra-vars=@${REPO}/roles/ssh/vars/main.yml
+# Get the variables used below
+source ./custom.sh
 
 ./mk-labs-bootstrap \
 	--initramfs \
 	--chroot gentoo-stage3 \
-	--ssh-config /dev/shm/sshd_config \
-	--ssh-host-keys-dir ${REPO}/roles/ssh/files/etc/ssh \
-	--ssh-authorized-keys ${REPO}/roles/ssh/files/root/.ssh/authorized_keys \
-	--root-password "$password" \
-	--add-ca "/usr/local/share/ca-certificates/RNLcacert.crt" \
+	--ssh-config "$SSHD_CONFIG" \
+	--ssh-host-keys-dir "$SSH_HOST_KEYS" \
+	--ssh-authorized-keys "$SSH_AUTHORIZED_KEYS" \
+	--root-password "$ROOT_PASSWORD" \
+	--add-ca "$CA_CERT" \
 	--dest "$FILE" \
 	"$@"
 
 if [ $? = 0 ]; then
 	echo -e "\n$FILE created, enjoy!"
 else
-	echo e "\nSomething wrong probably happened, sorry..."
+	echo -e "\nSomething wrong probably happened, sorry..."
 fi

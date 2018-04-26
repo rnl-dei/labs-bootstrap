@@ -70,7 +70,7 @@ mpv:
 	@rm -f /tmp/audio_group
 
 transmission:
-	@ansible all -i localhost, -c local -m template -a "src=$(REPO)/roles/transmission/templates/settings.json.j2 dest=/dev/shm/settings.json" --extra-vars=@${REPO}/roles/transmission/vars/main.yml
+	@./custom.sh transmission
 	@helpers/transmission_config_filter.awk "/dev/shm/settings.json" > /tmp/transmission_settings.json
 	@./create-package --name "/usr/bin/transmission-daemon" --dest "$(PKG_DIR)/$@.tar.gz" --pkg-hint "net-p2p/transmission" \
 		--copy-dir /usr/share/transmission/web /usr/share/transmission/web \
