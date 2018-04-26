@@ -1,5 +1,5 @@
 # Labs bootstrap initramfs framework
-Framework to generate initramfs with the primary purpose of deploying new base images to our labs, or "How I accidentally created a Linux distribution".
+Framework to generate an initramfs with the primary purpose of deploying new base images to our labs, or "How I accidentally created a Linux distribution".
 
 ## Emergency guide
 
@@ -45,7 +45,7 @@ Put this in the /boot of the machine, and as the `kernel parameter` of the grub 
 $ make packages
 ```
 This will create all already pre-defined packages in `/var/www/geminio/packages/`.
-The initramfs will get the packages from there automatically, nothing more neeeded to do.
+The initramfs will get the packages from there automatically, nothing more needed to do.
 
 ### Create a new package
 For example to create a package for rsync, just run the following:
@@ -81,13 +81,13 @@ Packages created with the procedure above can be installed by using the `emerge`
 
 ## How does this all work?
 
-The various components will be listed with a detailed explanation of its purpose and funcionality.
+The various components will be listed with a detailed explanation of its purpose and functionality.
 
 ### mk-labs-bootstrap
 
 This is the core of the framework, responsible for creating the initramfs and packages.
-It is written to be relatively generic, with only the minimal initramfs stuff hardcoded,
-with all the details being defined in commnand line options.
+It is written to be relatively generic, with only the minimal initramfs stuff hard-coded,
+with all the details being defined in command line options.
 
 This script supports the creation of initramfs and packages based on executables of a chroot system,
 or from the running system, but only the former is recommended and is used in the other scripts below.
@@ -102,7 +102,7 @@ It currently sets the following options:
  * SSH authorized_keys
  * root password
  * Our self-signed CA certificate
- 
+
 This script doesn't need to run with any additional options.
 ```
 $ ./create-initramfs
@@ -134,12 +134,12 @@ package from the executable name, like when these do not match.
 This is just a script to automate the setup and usage of the chroot system, by doing
 necessary the stuff before and after running the actual chroot call.
 
-This is used by other scripts the execute thigs inside the chroot, and is also
+This is used by other scripts the execute things inside the chroot, and is also
 for manual use, to compile/install the necessary stuff to use in the initramfs.
 
 Simply calling the script will spawn a `sh` shell:
 ```
-$ ./chroot-gentoo 
+$ ./chroot-gentoo
 (gentoo chroot) / $
 ```
 
@@ -154,11 +154,11 @@ configurations and packages to be usable by the other scripts.
 
 ### Makefile / make
 
-This is the high-level interface to the framework, to simplify its usage primarly
+This is the high-level interface to the framework, to simplify its usage primarily
 when recreating the pre-configured initramfs and packages.
 
-It has a generic target that can quikcly create a simple package for one executable,
-without the need for this specific exetuable to be listed of pre-configured anywhere.
+It has a generic target that can quickly create a simple package for one executable,
+without the need for this specific executable to be listed of pre-configured anywhere.
 It just needs to be available in the initramfs.
 
 For example:
@@ -169,7 +169,7 @@ $ make rsync
 ```
 
 But for some packages, the archive needs to include more that the executable and
-linked libraries to function. For exemple the transmission-daemon package needs to
+linked libraries to function. For example the transmission-daemon package needs to
 include the files in `/usr/share/transmission/web` if we want to be able to use the
 web interface.
 
@@ -183,7 +183,7 @@ List of all available Makefile targets.
  * **stage3** - Checks if the stage3 is fine, creating a new one if it doesn't.
  * **kernel** - Compiles the kernel to be used by the initramfs. Generates `labs-bootstrap-kernel`.
  * **all** - Creates both initramfs, packages and kernel.
- 
+
 The pre-defined packages include the packages that have specific rules because of
 extra files, and other packages that are considered useful to have available like
 strace for debugging, or scp to manually copy files.
@@ -202,9 +202,9 @@ by you. They are to be included unchanged in the final initramfs.
  * dhcp_script.sh - Called by busybox's udhcpc to set up the network settings.
  * completeScript.sh - Called by transmission when a torrents finishes.
  * shutdown.sh - Installed as `shutdown` in PATH. To be called to do a clean shutdown.
- 
+
 ### helpers directory
- 
+
 In the `helpers` directory are scripts and files to be used by other scripts to
 help create the initramfs or packages.
 
@@ -212,49 +212,31 @@ help create the initramfs or packages.
  * make.conf - Gentoo main config to copy to the stage3.
  * gentoo-repos.conf - Other gentoo config to topy to the stage3.
  * labs-bootstrap-kernel-config - Kernel config to be used in the stage3 kernel compilation.
- 
+
 ## Webserver
- 
+
  Altough the initramfs can function standalone, it was made with the purpose of
- relying on a webserver for on-the-fly customization, so that the initramfs doesn't
+ relying on a web server for on-the-fly customization, so that the initramfs doesn't
  need to be updated to do new stuff, and even install and run new software.
- 
+
 ### Packages
 
 When the initramfs tries to install a new package it tries `<server>/packages/<package name>.tar.gz`.
 
 The Makefile has the variable `PKG_DIR` that defines where it should put new packages.
 This variable should have the root directory of the URL above.
-  
+
 ### do.sh
 
 After the init script finishes booting, and before it enter the login loop, it
-downlaods `<server>/do.sh`, and sources it. Therefore, this URL should return an
+downloads `<server>/do.sh`, and sources it. Therefore, this URL should return an
 `sh` script, that can call the init script functions, and either can finish or
 enter an endless loop that never returns.
 
-Since this script os download each time, it can be used to change the actions the
+Since this script is downloaded each time, it can be used to change the actions the
 initramfs perform each time, and accordingly to the machine that runs it.
 
-This repository includes the php file to be called by the do.sh URL. It can done
-in nginx like this:
-```
-       location /do.sh {
-                alias /var/www/geminio/do.php;
-                fastcgi_pass php;
-                include fastcgi.conf;
-        }
-```
+A php backend to this was previously on this repository but as since moved to its own repository.
 
-This php script reads a rules file `bootstrap_rules.txt`, that instructs what script
-to return, depending on the name of the machine, and arguments given grom the grub
-cmd line. The init script includes all kernel boot options in the do.sh URL, like
-`/do.sh?option1&option2=value2&option3`.
-
-The scripts included in the directory `webroot/scripts` are the following:
-
- * nop.sh - Do nothing (Therefore, the login shell should appear).
- * shell.sh - Open a shell without login (Exiting this will require login).
- * deploy.sh - Linux base image deploy by bittorrent using transmission.
- * prank.sh - Installs mpv and plays video from <server>/files/video.mp4, reboots when it ends.
- * error.sh - If something worng happens in do.php, should show the error cause.
+The only detail to keep in mind for compatibility is that the init script includes all kernel
+boot options in the do.sh URL, like `/do.sh?option1&option2=value2&option3`.

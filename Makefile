@@ -1,6 +1,5 @@
 PKG_DIR = "/var/www/deploy/webroot/packages"
 CHROOT = "gentoo-stage3"
-REPO="ansible_repo"
 
 # Pre-defined packages. This will be automatically created when running 'make packages' or 'make all'
 PACKAGES = scp parted mkfs.ext4 lspci grub transmission tmux
