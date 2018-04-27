@@ -40,7 +40,7 @@ function quote_output() {
 
 function add_linked_libs() {
 	local lib bin="${1}"
-	for lib in $(ldd $bin | awk '/lib64/{print $(NF-1)}'); do
+	for lib in $(ldd $bin | awk '/lib/{print $(NF-1)}'); do
 		lib="${lib}"
 		if [ ! -f lib64/$(basename $lib) ]; then
 			echo "  $lib" >&2
