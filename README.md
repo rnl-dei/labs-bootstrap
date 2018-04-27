@@ -7,7 +7,7 @@ Did you FUBAR? Or did the previous guy ragequit? Do not despair!
 Only one command is needed to recreate everything as before.
 
 ```
-$ git clone git@atenas.rnl.tecnico.ulisboa.pt:rnlinux/labs-bootstrap.git
+$ git clone <this repo URL>
 $ cd labs-bootstrap
 $ make all
 ```
@@ -24,7 +24,7 @@ Before anything else, change to the labs-bootstrap directory.
 $ cd labs-boostrap
 ```
 
-### Create new initramfs
+### Create a new initramfs
 
 ```sh
 $ make initramfs
@@ -32,7 +32,7 @@ $ make initramfs
 This should create the file `labs-bootstrap-initramfs`.
 Put this in the /boot of the machine, and as the `initrd parameter` of the grub entry, and it is done.
 
-### Create new kernel
+### Create a new kernel
 
 ```sh
 $ make kernel
@@ -40,19 +40,20 @@ $ make kernel
 This should create the file `labs-bootstrap-kernel`.
 Put this in the /boot of the machine, and as the `kernel parameter` of the grub entry, and it is done.
 
-### Create pre-defined packages
+### Create the pre-defined packages
 ```
 $ make packages
 ```
-This will create all already pre-defined packages in `/var/www/geminio/packages/`.
-The initramfs will get the packages from there automatically, nothing more needed to do.
+This will create all already pre-defined packages in `/var/www/deploy/webroot/packages/`.
+The initramfs will get the packages from there automatically, nothing more needed to do,
+given that a web server is already working to serve files from there.
 
 ### Create a new package
 For example to create a package for rsync, just run the following:
 ```
 $ make rsync
 ...
-/var/www/geminio/packages/rsync.tar.gz created, enjoy!
+/var/www/deploy/webroot/packages/rsync.tar.gz created, enjoy!
 ```
 The package should now be available for the initramfs like with pre-defined packages.
 
@@ -118,9 +119,9 @@ Wrapper of the `mk-labs-bootstrap` to simplify the creation of simple packages o
 
 Examples:
 ```sh
-$ ./create-package --name "rsync" --dest "/var/www/geminio/packages/rsync.tar.gz"
-$ ./create-package --name "/usr/bin/scp" --dest "/var/www/geminio/packages/scp.tar.gz"
-$ ./create-package --name "grub-install" --dest "/var/www/geminio/packages/scp.tar.gz" --pkg-hint "grub"
+$ ./create-package --name "rsync" --dest "/var/www/deploy/webroot/packages/rsync.tar.gz"
+$ ./create-package --name "/usr/bin/scp" --dest "/var/www/deploy/webroot/packages/scp.tar.gz"
+$ ./create-package --name "grub-install" --dest "/var/www/deploy/webroot/packages/scp.tar.gz" --pkg-hint "grub"
 ```
 
 The `--name` argument can be the name of the executable to find in the stage3, or
@@ -165,7 +166,7 @@ For example:
 ```
 $ make rsync
 ...
-/var/www/geminio/packages/rsync.tar.gz created, enjoy!
+/var/www/deploy/webroot/packages/rsync.tar.gz created, enjoy!
 ```
 
 But for some packages, the archive needs to include more that the executable and
