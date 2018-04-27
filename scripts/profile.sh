@@ -14,11 +14,6 @@ alias poweroff="/bin/poweroff"
 alias shutdown="/bin/shutdown"
 alias reboot="/bin/reboot"
 
-alias scp="install_and_run scp"
-alias strace="install_and_run strace"
-alias htop="install_and_run htop"
-alias tmux="install_and_run tmux"
-
 install_and_run() {
 	prog="$1"
 	shift
@@ -29,3 +24,8 @@ install_and_run() {
 	fi
 	"${prog}" "$@"
 }
+
+# Dinamically set an alias for each package available
+for cmd in $(emerge --list); do
+	alias $cmd="install_and_run $cmd"
+done
