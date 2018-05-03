@@ -80,6 +80,19 @@ Packages created with the procedure above can be installed by using the `emerge`
  * rsync - Installation done
 ```
 
+### Create a new USB bootable pen
+
+Para máquinas em o initramfs já instalado, pode ser útil arrancar a máquina com uma pen com este,
+que pode ser gerado automaticamente com o seguinte comando.
+
+```
+$ ./mk-rescue-pen /dev/sdx
+```
+
+Isto faz download e instalada a última versão do System Rescue CD, e faz as customizações necessárias
+para que o initramfs seja a primeira opção no menu de boot, mantendo o resto inalterado.
+
+
 ## How does this all work?
 
 The various components will be listed with a detailed explanation of its purpose and functionality.
