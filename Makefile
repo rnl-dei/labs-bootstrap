@@ -30,6 +30,7 @@ stage3:
 kernel:
 	./chroot-gentoo -c "emerge -uv gentoo-sources"
 	cp -f "helpers/labs-bootstrap-kernel-config" "$(CHROOT)/usr/src/linux/.config"
+	./chroot-gentoo -c "cd /usr/src/linux && make olddefconfig"
 	./chroot-gentoo -c "cd /usr/src/linux && make -j2"
 	cp -f "$(CHROOT)/usr/src/linux/arch/x86_64/boot/bzImage" labs-bootstrap-kernel
 
