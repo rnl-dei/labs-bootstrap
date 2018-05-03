@@ -89,8 +89,11 @@ que pode ser gerado automaticamente com o seguinte comando.
 $ ./mk-rescue-pen /dev/sdx
 ```
 
-Isto faz download e instalada a última versão do System Rescue CD, e faz as customizações necessárias
+Isto faz download e instala a última versão do System Rescue CD, e faz as customizações necessárias
 para que o initramfs seja a primeira opção no menu de boot, mantendo o resto inalterado.
+
+Só funciona com dispositivos removíveis reais, não dando para criar uma imagem para gravar
+posteriormente numa pen. Isto é uma limitação/segurança do script to System Rescue CD.
 
 
 ## How does this all work?
