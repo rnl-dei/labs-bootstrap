@@ -86,4 +86,5 @@ cp labs-bootstrap-initramfs ${SYSDIR}/syslinux
 patch ${SYSDIR}/syslinux/syslinux.cfg helpers/syslinux.cfg.patch
 
 umount $SYSDIR
+sync
 echo "Done :D"
