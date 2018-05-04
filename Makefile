@@ -1,4 +1,5 @@
-PKG_DIR = "/var/www/deploy/webroot/packages"
+WEB_DIR = "/var/www/deploy/webroot"
+PKG_DIR = "${WEB_DIR}/packages"
 CHROOT = "gentoo-stage3"
 
 # Pre-defined packages. This will be automatically created when running 'make packages' or 'make all'
@@ -16,6 +17,7 @@ all: initramfs packages kernel
 
 initramfs:
 	@./create-initramfs
+	cp labs-bootstrap-initramfs ${WEB_DIR}
 
 packages: $(PACKAGES)
 
@@ -33,6 +35,7 @@ kernel:
 	./chroot-gentoo -c "cd /usr/src/linux && make olddefconfig"
 	./chroot-gentoo -c "cd /usr/src/linux && make -j2"
 	cp -f "$(CHROOT)/usr/src/linux/arch/x86_64/boot/bzImage" labs-bootstrap-kernel
+	cp labs-bootstrap-kernel ${WEB_DIR}
 
 # Generic rule for packages
 %:
