@@ -1,13 +1,5 @@
 #!/bin/sh
 
-# Se corre sem argumentos corre a si próprio dentro de um tmux
-
-if [ -z $1 ] ; then
-        mkdir /tmp
-        tmux new-session -d -s cenas 'sh completeScript.sh loles'
-        exit
-fi
-
 cd /downloads
 script="$(find . -name run.sh)"
 
@@ -20,4 +12,4 @@ else
 	echo "Cannot find run.sh in /downloads"
 fi
 
-bash
+sh
