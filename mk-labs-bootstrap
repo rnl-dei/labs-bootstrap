@@ -268,8 +268,9 @@ if [ -z "$CHROOT" ]; then
 
 		# Needed for "graphical" terminal things
 		mkdir -p etc/terminfo/{l,x}
-		cp /etc/terminfo/l/linux etc/terminfo/l/ # Local tty terminal
-		cp /etc/terminfo/x/xterm etc/terminfo/x/ # SSH terminal
+		cp -r /etc/terminfo/l etc/terminfo/l # Local tty terminal
+		cp -r /etc/terminfo/x etc/terminfo/x # SSH from xterm
+		cp -r /etc/terminfo/s etc/terminfo/s # SSH from screen
 
 	elif [ "$ACTION" = "package" ]; then
 
