@@ -3,7 +3,7 @@ PKG_DIR = "${WEB_DIR}/packages"
 CHROOT = "gentoo-stage3"
 
 # Pre-defined packages. This will be automatically created when running 'make packages' or 'make all'
-PACKAGES = scp parted mkfs.ext4 lspci grub transmission tmux partclone
+PACKAGES = scp parted mkfs.ext4 lspci grub transmission tmux pigz partclone.ntfs
 
 # Packages that may be usefull but not are needed for the deploy
 EXTRA_PACKAGES = htop ping rsync screen strace bash amixer alsamixer mpv
@@ -89,4 +89,4 @@ partclone.ntfs:
 	./chroot-gentoo -c "wget https://github.com/Thomas-Tsai/partclone/archive/$(PARTCLONE_VERSION).tar.gz -O partclone.tar.gz"
 	./chroot-gentoo -c "tar xf partclone.tar.gz"
 	./chroot-gentoo -c "cd partclone-$(PARTCLONE_VERSION) && ./autogen && ./configure --enable-ntfs && make install"
-	@./create-package --name "$@" --dest $(PKG_DIR)/$@.tar.gz
+	@./create-package --name "$@" --dest $(PKG_DIR)/$@.tar.gz --create-dir /var/log
