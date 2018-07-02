@@ -84,9 +84,9 @@ transmission:
 		--create-dir /incomplete \
 
 PARTCLONE_VERSION = 0.3.11
-partclone:
+partclone.ntfs:
 	./chroot-gentoo -c "emerge -uv ntfs3g"
 	./chroot-gentoo -c "wget https://github.com/Thomas-Tsai/partclone/archive/$(PARTCLONE_VERSION).tar.gz -O partclone.tar.gz"
 	./chroot-gentoo -c "tar xf partclone.tar.gz"
 	./chroot-gentoo -c "cd partclone-$(PARTCLONE_VERSION) && ./autogen && ./configure --enable-ntfs && make install"
-	@./create-package --name "partclone.ntfs" --dest $(PKG_DIR)/$@.tar.gz
+	@./create-package --name "$@" --dest $(PKG_DIR)/$@.tar.gz
