@@ -1,6 +1,6 @@
 #!/bin/busybox sh
 
-VERSION="1.0.1"
+VERSION="1.0.2"
 SERVER_URL="https://geminio.rnl.tecnico.ulisboa.pt"
 NTP_SERVER="ntp.rnl.tecnico.ulisboa.pt"
 

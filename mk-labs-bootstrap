@@ -179,6 +179,10 @@ while (( "$#" )); do
 						;;
 					"--dest") # Outside chroot
 						DESTINATION="$(realpath $2)"
+						if [ ! "$DESTINATION" ]; then
+							mkdir -p "$(dirname $2)"
+							DESTINATION="$(realpath $2)"
+						fi
 						shift
 						;;
 					*)
@@ -200,12 +204,12 @@ fi
 
 case "$ACTION" in
 	initramfs)
-		if [ -z "$DESTINATION" -a -n "$INSIDE_CHROOT" ]; then
+		if [ ! "$DESTINATION" -a ! "$INSIDE_CHROOT" ]; then
 			DESTINATION=$(realpath labs-bootstrap-initramfs)
 		fi
 		;;
 	package)
-		if [ -z "$DESTINATION" -a -n "$INSIDE_CHROOT" ]; then
+		if [ ! "$DESTINATION" -a ! "$INSIDE_CHROOT" ]; then
 			DESTINATION=$(realpath pkg.tar.gz)
 		fi
 		;;
