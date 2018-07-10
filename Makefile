@@ -90,3 +90,6 @@ partclone.ntfs:
 	./chroot-gentoo -c "tar xf partclone.tar.gz"
 	./chroot-gentoo -c "cd partclone-$(PARTCLONE_VERSION) && ./autogen && ./configure --enable-ntfs && make install"
 	@./create-package --name "$@" --dest $(PKG_DIR)/$@.tar.gz --create-dir /var/log
+
+mkfs.fat:
+	@./create-package --name "$@" --dest $(PKG_DIR)/$@.tar.gz --pkg-hint "sys-fs/dosfstools"
