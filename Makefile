@@ -3,7 +3,7 @@ PKG_DIR = "${WEB_DIR}/packages"
 CHROOT = "gentoo-stage3"
 
 # Pre-defined packages. This will be automatically created when running 'make packages' or 'make all'
-PACKAGES = scp parted mkfs.ext4 lspci grub transmission tmux pigz partclone.ntfs
+PACKAGES = scp parted mkfs.ext4 mkfs.fat lspci grub transmission tmux pigz partclone.ntfs
 
 # Packages that may be usefull but not are needed for the deploy
 EXTRA_PACKAGES = htop ping rsync screen strace bash amixer alsamixer mpv
