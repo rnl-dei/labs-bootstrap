@@ -1,6 +1,8 @@
 # Labs bootstrap initramfs framework
 Framework to generate an initramfs with the primary purpose of deploying new base images to our labs, or "How I accidentally created a Linux distribution".
 
+If you want to make a USB drive with the rescue image, take a look at mkrescue.
+
 ## Emergency guide
 
 Did you FUBAR? Or did the previous guy ragequit? Do not despair!
@@ -79,21 +81,6 @@ Packages created with the procedure above can be installed by using the `emerge`
 [initramfs] stuart:~ # emerge rsync
  * rsync - Installation done
 ```
-
-### Create a new USB bootable pen
-
-For machines without the initramfs already installed, this can be useful to bootstrap those machines.
-This can be automatically generated with the following command:
-
-```
-$ ./mk-rescue-pen /dev/sdx
-```
-
-This downloads and install the last version of the System Rescue CD, and does the necessary
-customizations for the initramfs to be the first menu boot option, maintaining the original functionality.
-
-This only works with real removable devices, not being able to crate an image to write later to
-a pen drive. This is a limitation/safety of the System Rescue CD script.
 
 ## How does this all work?
 
