@@ -65,7 +65,16 @@ echo 32 > /proc/sys/net/ipv4/ip_default_ttl
 rnl_header
 
 msg "Starting DHCP client"
-udhcpc 2>/dev/null | grep "\(Lease\|Adding\)"
+
+udhcpc -n  2>/dev/null | grep "\(Lease\|Adding\)"
+until [ $? -eq 0 ]; do
+	msg "DHCP failed. Here's the output of 'ip link show'"
+	ip link show
+	msg "Press ENTER to retry"
+	read
+
+	udhcpc -n  2>/dev/null | grep "\(Lease\|Adding\)"
+done
 
 if ip route | grep 193.136.154.0/25; then
 	EXTRA_SUBNET="193.136.154.128/26"
