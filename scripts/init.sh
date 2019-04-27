@@ -66,14 +66,11 @@ rnl_header
 
 msg "Starting DHCP client"
 
-udhcpc -n  2>/dev/null | grep "\(Lease\|Adding\)"
-until [ $? -eq 0 ]; do
+while ! udhcpc -n  2>/dev/null | grep "\(Lease\|Adding\)" ; do
 	msg "DHCP failed. Here's the output of 'ip link show'"
 	ip link show
 	msg "Press ENTER to retry"
 	read
-
-	udhcpc -n  2>/dev/null | grep "\(Lease\|Adding\)"
 done
 
 if ip route | grep 193.136.154.0/25; then
@@ -99,7 +96,7 @@ msg "Downloading script do.sh"
 
 if [ -f do.sh ]; then
 	error "Executing script"
-	source ./do.sh
+	source "./do.sh"
 else
 	error "Could not find do.sh"
 fi
