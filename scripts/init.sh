@@ -1,6 +1,6 @@
 #!/bin/busybox sh
 
-VERSION="1.0.2"
+VERSION="1.0.3"
 SERVER_URL="https://geminio.rnl.tecnico.ulisboa.pt"
 NTP_SERVER="ntp.rnl.tecnico.ulisboa.pt"
 
@@ -73,14 +73,13 @@ while ! udhcpc -n  2>/dev/null | grep "\(Lease\|Adding\)" ; do
 	read
 done
 
-if ip route | grep 193.136.154.0/25; then
-	EXTRA_SUBNET="193.136.154.128/26"
-else
-	EXTRA_SUBNET="193.136.154.0/25"
-fi
-
-msg "Adding extra subnet route ${EXTRA_SUBNET}"
-ip route add "${EXTRA_SUBNET}" dev eth0
+EXTRA_SUBNETS="193.136.154.128/26 193.136.154.0/25 10.16.82.0/24"
+for subnet in $EXTRA_SUBNETS; do
+	if ! ip route | grep "$subnet"; then
+		msg "Adding extra route for ${subnet}"
+		ip route add "${subnet}" dev eth0
+	fi
+done
 
 msg "Starting SSH server"
 /bin/sshd -E /sshd.log
