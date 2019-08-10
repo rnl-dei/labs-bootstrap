@@ -1,6 +1,6 @@
 #!/bin/sh
 
-header "Geminio bootstrap script - Surprise Edition"
+header "RNL bootstrap script - Surprise Edition"
 
 # do not run forever!
 # warning: be sure to test this in busybox before changing it
@@ -9,7 +9,7 @@ header "Geminio bootstrap script - Surprise Edition"
 emerge mpv
 
 msg "Downloading video.mp4"
-/bin/wget --no-verbose "http://geminio.rnl.tecnico.ulisboa.pt/files/video.mp4"
+/bin/wget --no-verbose "http://bootstrap.rnl.tecnico.ulisboa.pt/files/video.mp4"
 
 
 sleep 1

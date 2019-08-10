@@ -1,2 +1,2 @@
 #!/bin/sh
-header 'Geminio bootstrap script - Nothing to be done'
+header 'RNL bootstrap script - Nothing to be done'

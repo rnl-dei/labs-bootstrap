@@ -1,7 +1,7 @@
 #!/bin/busybox sh
 
 VERSION="1.0.3"
-SERVER_URL="https://geminio.rnl.tecnico.ulisboa.pt"
+SERVER_URL="https://bootstrap.rnl.tecnico.ulisboa.pt"
 NTP_SERVER="ntp.rnl.tecnico.ulisboa.pt"
 
 NORMAL="\e[0m"

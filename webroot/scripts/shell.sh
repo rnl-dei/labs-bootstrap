@@ -1,3 +1,3 @@
 #!/bin/sh
-header 'Geminio bootstrap script - Rescue shell'
+header 'RNL bootstrap script - Rescue shell'
 rescue_shell
