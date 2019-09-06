@@ -14,6 +14,7 @@ source ./custom.sh
 	--root-password "$ROOT_PASSWORD" \
 	--add-ca "$CA_CERT" \
 	--dest "$FILE" \
+	--version "$(./version.sh)" \
 	"$@"
 
 if [ $? = 0 ]; then

@@ -184,6 +184,10 @@ while (( "$#" )); do
 						fi
 						shift
 						;;
+					"--version")
+						VERSION="$2"
+						shift
+						;;
 					*)
 						warning "Unknown option '$1'"
 						exit 1
@@ -241,7 +245,10 @@ fi
 
 # Change to a clean work directory
 mkdir -p "$WORK_DIR"
-cd "$WORK_DIR"
+if ! cd "$WORK_DIR"; then
+	warning "could not change to clean work dir... aborting"
+	exit 1
+fi
 rm -rf *
 
 ###### Stuff to to inside the chroot if used ###################################
@@ -428,6 +435,10 @@ cp ${SCRIPTS_PATH}/profile.sh etc/profile
 # Copy init script
 cp ${SCRIPTS_PATH}/init.sh init
 chmod +x init
+
+# Copy initramfs/repo version
+test -n "${VERSION}" || VERSION=$(date '+%F %T')
+echo ${VERSION} > version
 
 ###### Finishing initramfs creation ############################################
 

@@ -1,6 +1,6 @@
 #!/bin/busybox sh
 
-VERSION="1.0.4"
+VERSION="`cat /version`"
 SERVER_URL="http://dolly.rnl.tecnico.ulisboa.pt"
 NTP_SERVER="ntp.rnl.tecnico.ulisboa.pt"
 
