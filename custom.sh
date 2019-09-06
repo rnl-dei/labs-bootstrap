@@ -38,6 +38,11 @@ get_cacert() {
 
 [[ ! "$SOURCED" ]] && CUSTOM_TARGET="$1"
 
+if ! test -e $REPO; then
+	echo "Could not find Linux ansible repo in '$REPO'! Please copy/link it."
+	exit 1
+fi
+
 case "$CUSTOM_TARGET" in
 
 	# This script is called with "transmission" from the Makefile to generate
