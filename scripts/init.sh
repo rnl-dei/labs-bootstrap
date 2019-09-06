@@ -1,7 +1,7 @@
 #!/bin/busybox sh
 
 VERSION="1.0.4"
-SERVER_URL="https://bootstrap.rnl.tecnico.ulisboa.pt"
+SERVER_URL="http://dolly.rnl.tecnico.ulisboa.pt"
 NTP_SERVER="ntp.rnl.tecnico.ulisboa.pt"
 
 NORMAL="\e[0m"
@@ -15,6 +15,10 @@ rescue_shell() {
     # "login" -> Use this instead of calling sh to source /etc/profile
     # "-f root" -> Needed to have login not ask authentication
     setsid cttyhack login -f root
+}
+
+info() {
+	echo -e -n "\r${YELLOW} * ${1}${NORMAL}"
 }
 
 msg() {

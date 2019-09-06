@@ -1,4 +1,4 @@
-WEB_DIR = "/var/www/deploy/webroot"
+WEB_DIR = "/var/www/rnlinux_deploy"
 PKG_DIR = "${WEB_DIR}/packages"
 CHROOT = "gentoo-stage3"
 

@@ -7,7 +7,7 @@ emerge mkfs.ext4
 emerge transmission
 
 info "Downloading torrent file"
-/bin/wget --no-verbose "http://bootstrap.rnl.tecnico.ulisboa.pt/deploy.torrent" -P /torrents/
+/bin/wget --no-verbose "http://dolly.rnl.tecnico.ulisboa.pt/deploy.torrent" -P /torrents/
 
 sleep 5
 

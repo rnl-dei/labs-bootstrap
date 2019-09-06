@@ -1,6 +1,6 @@
 #!/bin/sh
 
-SERVER_URL="https://bootstrap.rnl.tecnico.ulisboa.pt/packages"
+SERVER_URL="http://dolly.rnl.tecnico.ulisboa.pt/packages"
 DOWNLOAD_DIR="/root"
 
 YELLOW="\e[33m"
