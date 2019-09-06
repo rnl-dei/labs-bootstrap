@@ -25,6 +25,14 @@ error() {
     echo -e "  ${RED}${1}${NORMAL}"
 }
 
+function info() {
+    echo -e "${CYAN}${1}${NORMAL}"
+}
+
+function warning() {
+    echo -e "${RED}${1}${NORMAL}"
+}
+
 header() {
     echo -e "\n${GREEN}   ${1}${NORMAL}\n"
 }
