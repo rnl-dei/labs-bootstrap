@@ -22,6 +22,20 @@ awk -f- ${REPO}/roles/users/vars/main.yml <<EOF
 EOF
 }
 
+get_cacert() {
+	CA_URL="https://rnl.tecnico.ulisboa.pt/ca/cacert/cacert.pem"
+	CA_CERT_DEST="/usr/local/share/ca-certificates/RNLcacert.crt"
+	if ! test -e "$CA_CERT_DEST"; then
+		if mkdir -p "$(dirname "$CA_CERT_DEST")" && wget "$CA_URL" -O "$CA_CERT_DEST"; then
+			echo "Downloaded CA certificate."
+		else
+			echo "Could not download CA certificate!" >&2
+			exit 1
+		fi
+	fi
+	echo "$CA_CERT_DEST"
+}
+
 [[ ! "$SOURCED" ]] && CUSTOM_TARGET="$1"
 
 case "$CUSTOM_TARGET" in
@@ -46,8 +60,7 @@ case "$CUSTOM_TARGET" in
 
 		SSH_HOST_KEYS="${REPO}/roles/ssh/files/etc/ssh"
 		SSH_AUTHORIZED_KEYS="${REPO}/roles/ssh/files/root/.ssh/authorized_keys"
-		CA_CERT="/usr/local/share/ca-certificates/RNLcacert.crt"
+		CA_CERT="$(get_cacert)"
 		ROOT_PASSWORD=$(get_root_pass)
 		;;
 esac
-
