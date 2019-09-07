@@ -20,3 +20,5 @@ msg "bye bye..."
 
 sleep 1
 /bin/reboot
+# make sure we don't go to a rescue shell if reboot does not work
+while sleep 2; do sleep 2;  done

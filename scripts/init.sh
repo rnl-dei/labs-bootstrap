@@ -108,11 +108,22 @@ msg "Downloading script do.sh"
 if [ -f do.sh ]; then
 	error "Executing script"
 	source "./do.sh"
+	msg "script finished."
 else
 	error "Could not find do.sh"
 fi
 
-while :; do
-	echo
-	rescue_shell
+# don't want to drop to root shell when our servers are down...
+for arg in $(cat /proc/cmdline); do
+	if [ "$arg" = "--fallback-to-rescue-shell" ] ; then
+		while :; do
+			echo
+			rescue_shell
+		done
+	fi
 done
+
+error "Will not drop to rescue shell (use --fallback-to-rescue-shell to enable)."
+error "Press any key to reboot"
+read
+/bin/reboot
