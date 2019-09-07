@@ -2,6 +2,9 @@
 
 BASE_DIR="$(dirname $(realpath $0))"
 CHROOT="${BASE_DIR}/gentoo-stage3"
+# must match the gentoo repo location used by the stage3
+PORTDIR="/var/db/repos/gentoo"
+
 
 STAGE3_URL="http://ftp.rnl.tecnico.ulisboa.pt/pub/gentoo/gentoo-distfiles/releases/amd64/autobuilds"
 
@@ -64,9 +67,14 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 
 	header "Setting up portage"
 
-	mkdir "${CHROOT}/etc/portage/repos.conf" "${CHROOT}/usr/portage/"
+	mkdir "${CHROOT}/etc/portage/repos.conf" "${CHROOT}${PORTDIR}"
 	cp "${BASE_DIR}/helpers/make.conf" "${CHROOT}/etc/portage/"
 	cp "${BASE_DIR}/helpers/gentoo-repos.conf" "${CHROOT}/etc/portage/repos.conf"
+
+	sed -i \
+		-e "s|location.*=.*|location = ${PORTDIR}|g" \
+		"${CHROOT}/etc/portage/repos.conf/gentoo-repos.conf" \
+		|| abort "failed to update repos.conf."
 
 	echo "\$0 is $0"
 
