@@ -8,6 +8,7 @@ TIMEZONE="Europe/Lisbon"
 # sshd - SSH server
 # wget - needed for HTTPS downloads (busybox wget does not support it)
 BASE_EXES="/bin/busybox /usr/sbin/sshd /usr/bin/wget"
+BASE_EXES="$BASE_EXES /usr/bin/scp"
 
 # Libs to allow DNS resolving that ldd does not
 # show because libc loads them on-the-fly
