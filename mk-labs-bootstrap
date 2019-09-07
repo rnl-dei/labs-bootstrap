@@ -447,3 +447,4 @@ info "Creating initramfs archive on $DESTINATION"
 info "Done"
 
 show_stats
+info "initramfs version: $VERSION"
