@@ -31,11 +31,12 @@ function abort() {
 if [ ! -x "${CHROOT}/sbin/init" ]; then
 
 	warning "It seems like the stage3 is missing or in bad shape."
-	warning "This is going to take a while to rebuild, but less than 5 minutes."
+	warning "This is going to take a while to rebuild, but less than 10 minutes."
 
 	if mount | grep "${CHROOT}"; then
 		abort "something is mounted inside the chroot. Unmount it first."
 	fi
+
 	rm -rf "${CHROOT}"
 	mkdir "${CHROOT}"
 	url="$(curl --silent "${STAGE3_URL}/latest-stage3-amd64-nomultilib.txt" | awk '/^[^#]/{print $1}')"
@@ -46,7 +47,8 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 	wget "$stage3_url" -O "${CHROOT}/stage3.tar.bz2"
 
 	header "Extracting stage3"
-	tar xf "${CHROOT}/stage3.tar.bz2" -C "${CHROOT}" \
+	tar --totals --checkpoint=20000 --checkpoint-action=echo=%T -xf \
+		"${CHROOT}/stage3.tar.bz2" -C "${CHROOT}" \
 		|| abort "error extracting stage3"
 	rm "${CHROOT}/stage3.tar.bz2"
 
