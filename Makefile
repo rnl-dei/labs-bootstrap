@@ -8,12 +8,20 @@ PACKAGES = scp parted mkfs.ext4 mkfs.fat lspci grub transmission tmux pigz partc
 # Packages that may be usefull but not are needed for the deploy
 EXTRA_PACKAGES = htop ping rsync screen strace bash amixer alsamixer mpv
 
-.PHONY: packages extra_packages initramfs all
+.PHONY: packages extra_packages initramfs all clean deepclean
 
 help:
 	@echo "Run 'make all' if you really want to build everything."
 
 all: initramfs packages kernel
+
+clean:
+	@echo Use deepclean if you also want to clean the kernel and stage3
+	$(RM) labs-bootstrap-initramfs
+
+deepclean:
+	$(RM) labs-bootstrap-initramfs labs-bootstrap-kernel
+	$(RM) gentoo-stage3
 
 initramfs:
 	@./create-initramfs
