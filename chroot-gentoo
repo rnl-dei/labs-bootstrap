@@ -8,6 +8,8 @@ STAGE3_URL="http://ftp.rnl.tecnico.ulisboa.pt/pub/gentoo/gentoo-distfiles/releas
 CYAN="\e[0;36m"
 RED="\e[0;31m"
 NORMAL="\e[0m"
+BOLD="\e[1m"
+REVERSE="\e[7m"
 
 function header() {
 	echo -e "\n${CYAN}  ============================================================\
@@ -18,6 +20,12 @@ function warning() {
 	echo -e "  ${RED}${1}${NORMAL}"
 }
 
+function abort() {
+	printf "  ${RED}%s[%s]:${NORMAL}" "${BASH_SOURCE[1]}" ${BASH_LINENO[0]}
+	echo -e " ${RED}${REVERSE}$@${NORMAL} ${RED}Aborting...${NORMAL}"
+	exit 2
+}
+
 # Check if stage3 exists
 
 if [ ! -x "${CHROOT}/sbin/init" ]; then
@@ -25,18 +33,25 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 	warning "It seems like the stage3 is missing or in bad shape."
 	warning "This is going to take a while to rebuild, but less than 5 minutes."
 
+	if mount | grep "${CHROOT}"; then
+		abort "something is mounted inside the chroot. Unmount it first."
+	fi
 	rm -rf "${CHROOT}"
 	mkdir "${CHROOT}"
 	url="$(curl --silent "${STAGE3_URL}/latest-stage3-amd64-nomultilib.txt" | awk '/^[^#]/{print $1}')"
 	stage3_url="${STAGE3_URL}/${url}"
 
 	header "Downloading stage3"
+	echo "$stage3_url" > "${CHROOT}/stage3.txt"
 	wget "$stage3_url" -O "${CHROOT}/stage3.tar.bz2"
 
 	header "Extracting stage3"
-	tar xf "${CHROOT}/stage3.tar.bz2" -C "${CHROOT}"
+	tar xf "${CHROOT}/stage3.tar.bz2" -C "${CHROOT}" \
+		|| abort "error extracting stage3"
 	rm "${CHROOT}/stage3.tar.bz2"
 
+	readlink "${CHROOT}/etc/portage/make.profile" | grep "${PORTDIR}" \
+		|| abort "make.profile symlink doesn't seem to point to PORTDIR (${PORTDIR}). Will not be able to emerge packages."
 
 	header "Setting up base system"
 	echo "Copying /etc/resolv.conf"
@@ -51,16 +66,25 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 	cp "${BASE_DIR}/helpers/make.conf" "${CHROOT}/etc/portage/"
 	cp "${BASE_DIR}/helpers/gentoo-repos.conf" "${CHROOT}/etc/portage/repos.conf"
 
-	"$0" -c "emerge-webrsync"
+	echo "\$0 is $0"
+
+	"$0" -c "emerge-webrsync" \
+		|| abort "emerge-webrsync failed. Will not be able to install required packages."
 	"$0" -c "emerge --sync"
 
+	header "Update portage"
+	"$0" -c "emerge --color=y -1u portage"
+
 	header "Updating packages for static binaries"
-	"$0" -c "emerge -1 net-misc/wget net-misc/openssh"
+	"$0" -c "emerge --color=y -1 net-misc/wget net-misc/openssh" \
+		|| warning "wget and ssh may not be available!"
 
 	header "Installing maintenance packages"
 
-	"$0" -c "emerge eix genlop gentoolkit portage-utils"
-	"$0" -c "eix-update"
+	"$0" -c "emerge --color=y eix genlop gentoolkit portage-utils" \
+		|| abort "error installing maintenance packages. Will not be able to lookup packages."
+	"$0" -c "eix-update --force-color" \
+		|| abort "eix-update failed. Will not be able to lookup packages."
 
 	header "Done"
 
@@ -126,6 +150,7 @@ fi
 
 export PS1="(gentoo chroot) \w $ "
 chroot "${CHROOT}" /bin/sh "$@"
+ret=$?
 
 ### Umount stuff if allowed
 
@@ -136,3 +161,6 @@ if [ -z "${KEEP_MOUNTS}" ] && ! is_another_chroot_is_running ; then
 	umount -f "${CHROOT}/dev"
 	umount -f "${CHROOT}/sys"
 fi
+
+# important so we can abort if something fails
+exit $ret
