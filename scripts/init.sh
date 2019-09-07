@@ -1,7 +1,7 @@
 #!/bin/busybox sh
 
 VERSION="`cat /version`"
-SERVER_URL="http://dolly.rnl.tecnico.ulisboa.pt"
+SERVER_URL="https://bootstrap.rnl.tecnico.ulisboa.pt"
 NTP_SERVER="ntp.rnl.tecnico.ulisboa.pt"
 
 NORMAL="\e[0m"
@@ -18,7 +18,7 @@ rescue_shell() {
 }
 
 info() {
-	echo -e -n "\r${YELLOW} * ${1}${NORMAL}"
+    echo -e -n "\r${YELLOW} * ${1}${NORMAL}"
 }
 
 msg() {

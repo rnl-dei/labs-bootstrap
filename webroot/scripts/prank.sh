@@ -9,7 +9,7 @@ header "RNL bootstrap script - Surprise Edition"
 emerge mpv
 
 msg "Downloading video.mp4"
-/bin/wget --no-verbose "http://dolly.rnl.tecnico.ulisboa.pt/files/video.mp4"
+/bin/wget --no-verbose "http://bootstrap.rnl.tecnico.ulisboa.pt/files/video.mp4"
 
 
 sleep 1
