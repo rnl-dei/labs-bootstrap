@@ -89,6 +89,11 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 	"$0" -c "emerge --color=y -1 net-misc/wget net-misc/openssh" \
 		|| warning "wget and ssh may not be available!"
 
+	header "Installing useful packages"
+	"$0" -c "emerge --color=y -1 \
+		sys-process/htop" \
+		|| warning "some packages may not be available!"
+
 	header "Installing maintenance packages"
 
 	"$0" -c "emerge --color=y eix genlop gentoolkit portage-utils" \
