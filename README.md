@@ -14,7 +14,9 @@ $ cd labs-bootstrap
 $ make all
 ```
 
-This will take a while since it first has to download and setup a new gentoo stage3, and emerge the necessary packages.
+This will take a while since it first has to download and setup a new
+[gentoo stage3](https://wiki.gentoo.org/wiki/Stage_tarball)
+and [emerge](https://wiki.gentoo.org/wiki/Portage) the necessary packages.
 
 ## Quick How-to
 
@@ -46,29 +48,32 @@ Put this in the /boot of the machine, and as the `kernel parameter` of the grub 
 ```
 $ make packages
 ```
-This will create all already pre-defined packages in `/var/www/deploy/webroot/packages/`.
+This will create all already pre-defined packages in `/var/www/rnlinux_deploy/webroot/packages/`.
 The initramfs will get the packages from there automatically, nothing more needed to do,
 given that a web server is already working to serve files from there.
 
 ### Create a new package
-For example to create a package for rsync, just run the following:
+For example, to create a package for `rsync`, just run the following:
 ```
 $ make rsync
 ...
-/var/www/deploy/webroot/packages/rsync.tar.gz created, enjoy!
+/var/www/rnlinux_deploy/webroot/packages/rsync.tar.gz created, enjoy!
 ```
 The package should now be available for the initramfs like with pre-defined packages.
 
-In case the program isn't installed on the stage3, the script will try to guess the package needed and install it.
-In case the script can't guess, you can always chroot to the stage3 and do whatever needed.
+If the program is not already installed on the stage3,
+the script will try to guess which package is needed and install it.
+If the script is unable to guess, you can always chroot to the stage3 and do whatever is needed.
 
-To find if the executable is installed you can run something like this like this:
+To find out if the executable is installed you,
+can run something like this like this:
 ```
 $ ./chroot-gentoo -c "which rsync"
 /usr/bin/rsync
 ```
 
-It's installed in this case, but if it was not, install it like you would normally do in a chrooted gentoo system.
+In this example, rsync is already installed.
+If it was not available, you could install it like you would normally do in a chrooted gentoo system:
 ```
 $ ./chroot-gentoo -c "emerge -av rsync"
 ```
