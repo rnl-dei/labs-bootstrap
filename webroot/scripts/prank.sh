@@ -13,7 +13,8 @@ msg "Downloading video.mp4"
 
 
 sleep 1
-mpv -vo caca --no-input-default-bindings video.mp4
+mpv -vo caca --no-input-default-bindings video.mp4 \
+|| mpv -vo tct --no-input-default-bindings video.mp4
 
 clear
 msg "bye bye..."
