@@ -17,6 +17,9 @@ rescue_shell() {
     setsid cttyhack login -f root
 }
 
+mydate() {
+    date '+%F %T'
+}
 
 msg() {
     echo -e "${CYAN} * ${1}${NORMAL}"
@@ -79,12 +82,14 @@ echo
 
 msg "Starting DHCP client"
 
+mydate
 while ! udhcpc -n  2>/dev/null | grep "\(Lease\|Adding\)" ; do
 	msg "DHCP failed. Here's the output of 'ip link show'"
 	ip link show
-	msg "Press ENTER to retry"
-	read
+	msg "Press ENTER to retry or wait 15s"
+	read -t15
 done
+mydate
 
 EXTRA_SUBNETS="193.136.154.128/26 193.136.154.0/25 10.16.82.0/24"
 for subnet in $EXTRA_SUBNETS; do
