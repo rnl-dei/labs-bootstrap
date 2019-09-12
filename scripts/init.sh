@@ -130,6 +130,7 @@ for arg in $(cat /proc/cmdline); do
 done
 
 error "Will not drop to rescue shell (use --fallback-to-rescue-shell to enable)."
-error "Press any key to reboot"
-read
+error "Press enter to reboot"
+# 86400 = 1 day
+read -t86400
 /bin/reboot
