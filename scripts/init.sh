@@ -76,6 +76,10 @@ echo 32 > /proc/sys/net/ipv4/ip_default_ttl
 
 rnl_header
 
+mac=`ip link show | awk '/([0-9A-Fa-f]{1,2}[:-]){5}([0-9A-Fa-f]{1,2})/{print $2}' | awk '!/^00:00/'`
+echo "MAC: $mac"
+echo
+
 msg "Starting DHCP client"
 
 while ! udhcpc -n  2>/dev/null | grep "\(Lease\|Adding\)" ; do
