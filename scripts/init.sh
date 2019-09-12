@@ -17,9 +17,6 @@ rescue_shell() {
     setsid cttyhack login -f root
 }
 
-info() {
-    echo -e -n "\r${YELLOW} * ${1}${NORMAL}"
-}
 
 msg() {
     echo -e "${CYAN} * ${1}${NORMAL}"
