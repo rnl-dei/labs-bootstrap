@@ -21,6 +21,7 @@ clean:
 
 deepclean:
 	$(RM) labs-bootstrap-initramfs labs-bootstrap-kernel
+	@! mount | grep `realpath gentoo-stage3` # abort if something is still mounted in the chroot
 	$(RM) -r gentoo-stage3
 
 initramfs:
