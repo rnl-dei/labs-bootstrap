@@ -21,7 +21,7 @@ clean:
 
 deepclean:
 	$(RM) labs-bootstrap-initramfs labs-bootstrap-kernel
-	$(RM) gentoo-stage3
+	$(RM) -r gentoo-stage3
 
 initramfs:
 	@./create-initramfs
