@@ -12,7 +12,6 @@ server:
 steps:
   - name: Relink ansible_repo to ansible in dolly
     commands:
-      - unlink ansible_repo
       - ln -s /mnt/storage/linux/ansible ansible_repo
 
   - name: Build/deploy
