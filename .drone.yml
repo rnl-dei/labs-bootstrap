@@ -3,6 +3,9 @@ kind: pipeline
 type: ssh
 name: default
 
+clone:
+  depth: 1
+
 server:
   host: dolly
   user: root
@@ -16,4 +19,4 @@ steps:
 
   - name: Build/deploy
     commands:
-      - make
+      - make all
