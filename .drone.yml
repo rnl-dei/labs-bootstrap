@@ -1,0 +1,20 @@
+---
+kind: pipeline
+type: ssh
+name: default
+
+server:
+  host: dolly
+  user: root
+  ssh_key:
+    from_secret: dolly_key
+
+steps:
+  - name: Relink ansible_repo to ansible in dolly
+    commands:
+      - unlink ansible_repo
+      - ln -s /mnt/storage/linux/ansible ansible_repo
+
+  - name: Build/deploy
+    commands:
+      - make
