@@ -161,6 +161,11 @@ if ! mount_exists /dev/shm; then
 	mount -o bind /dev/shm "${CHROOT}/dev/shm"
 fi
 
+# bind portage tmpfs if available in the host system
+if test -e "${CHROOT}/var/tmp/portage" && mount | grep /var/tmp/portage >/dev/null; then
+	mount -o bind /var/tmp/portage "${CHROOT}/var/tmp/portage"
+fi
+
 ### Actual chroot call
 
 export PS1="(gentoo chroot) \w $ "
@@ -175,6 +180,7 @@ if [ -z "${KEEP_MOUNTS}" ] && ! is_another_chroot_is_running ; then
 	umount -f "${CHROOT}/dev/shm"
 	umount -f "${CHROOT}/dev"
 	umount -f "${CHROOT}/sys"
+	umount -f "${CHROOT}/var/tmp/portage" -q
 fi
 
 # important so we can abort if something fails
