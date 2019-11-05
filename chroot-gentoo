@@ -47,7 +47,7 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 
 	header "Downloading stage3"
 	echo "$stage3_url" > "${CHROOT}/stage3.txt"
-	wget "$stage3_url" -O "${CHROOT}/stage3.tar.bz2"
+	wget "$stage3_url" -O "${CHROOT}/stage3.tar.bz2" --progress=dot:giga
 
 	header "Extracting stage3"
 	tar --totals --checkpoint=20000 --checkpoint-action=echo=%T -xf \
@@ -80,7 +80,7 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 
 	"$0" -c "emerge-webrsync" \
 		|| abort "emerge-webrsync failed. Will not be able to install required packages."
-	"$0" -c "emerge --sync"
+	"$0" -c "emerge --sync --quiet"
 
 	header "Update portage"
 	"$0" -c "emerge --color=y -1u portage"
