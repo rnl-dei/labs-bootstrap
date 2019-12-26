@@ -1,5 +1,5 @@
 WEB_DIR = "/var/www/rnlinux_deploy"
-PKG_DIR = "${WEB_DIR}/packages"
+PKG_DIR = "packages"
 CHROOT = "gentoo-stage3"
 
 # Pre-defined packages. This will be automatically created when running 'make packages' or 'make all'
@@ -9,6 +9,7 @@ PACKAGES = scp parted mkfs.ext4 mkfs.fat lspci grub transmission tmux pigz partc
 EXTRA_PACKAGES = htop ping rsync screen strace bash amixer alsamixer mpv
 
 .PHONY: packages extra_packages initramfs all clean deepclean
+.PHONY: install
 
 help:
 	@echo "Run 'make all' if you really want to build everything."
@@ -25,11 +26,16 @@ deepclean:
 
 initramfs:
 	@./create-initramfs
-	cp labs-bootstrap-initramfs ${WEB_DIR}
 
 packages: $(PACKAGES)
 
 extra_packages: $(EXTRA_PACKAGES)
+
+# not adding dependencies so they're not compiled twice
+install:
+	cp labs-bootstrap-initramfs ${WEB_DIR}
+	cp labs-bootstrap-kernel ${WEB_DIR}
+	cp -r ${PKG_DIR} ${WEB_DIR}/
 
 # By running any command the script will generate the stage3 if it doesn't exist
 # This doesn't need to be in target 'all' or as a dependency since it is called by the other scripts
@@ -43,7 +49,6 @@ kernel:
 	./chroot-gentoo -c "cd /usr/src/linux && make olddefconfig"
 	./chroot-gentoo -c "cd /usr/src/linux && make -j2"
 	cp -f "$(CHROOT)/usr/src/linux/arch/x86_64/boot/bzImage" labs-bootstrap-kernel
-	cp labs-bootstrap-kernel ${WEB_DIR}
 
 # Generic rule for packages
 %:
