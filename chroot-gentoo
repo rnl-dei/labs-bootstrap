@@ -84,6 +84,9 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 		|| abort "emerge-webrsync failed. Will not be able to install required packages."
 	"$0" -c "emerge --sync --quiet"
 
+	header "mark eselect news as read"
+	"$0" -c "eselect news read --quiet"
+
 	header "Update portage"
 	"$0" -c "emerge --color=y -1u portage"
 
@@ -91,6 +94,7 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 	"$0" -c "emerge --color=y -1 net-misc/wget net-misc/openssh" \
 		|| warning "wget and ssh may not be available!"
 
+	"$0" -c "wget --version" || abort "wget is probably broken"
 	header "Installing useful packages"
 	"$0" -c "emerge --color=y -1 \
 		sys-process/htop" \
