@@ -1,0 +1,4 @@
+# vim:ft=gentoo-package-use
+
+# workaround for https://bugs.gentoo.org/699384 (see #5)
+<net-misc/openssh-8.2 -static
