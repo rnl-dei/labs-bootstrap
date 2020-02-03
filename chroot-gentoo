@@ -91,7 +91,8 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 	"$0" -c "emerge --color=y -1u portage"
 
 	header "Updating packages for static binaries"
-	"$0" -c "emerge --color=y -1 net-misc/wget net-misc/openssh" \
+	echo "note: they are not really static for now; see #5"
+	"$0" -c "emerge --color=y -1v net-misc/wget net-misc/openssh" \
 		|| warning "wget and ssh may not be available!"
 
 	"$0" -c "wget --version" || abort "wget is probably broken"
