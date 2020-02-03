@@ -35,7 +35,8 @@ $ cd labs-boostrap
 $ make initramfs
 ```
 This should create the file `labs-bootstrap-initramfs`.
-Put this in the /boot of the machine, and as the `initrd parameter` of the grub entry, and it is done.
+This file should be placed in the `/boot` folder/partition of the machine.
+Don't forget to add it to the `initrd` parameter of the corresponding GRUB entry.
 
 ### Create a new kernel
 
@@ -43,7 +44,8 @@ Put this in the /boot of the machine, and as the `initrd parameter` of the grub 
 $ make kernel
 ```
 This should create the file `labs-bootstrap-kernel`.
-Put this in the /boot of the machine, and as the `kernel parameter` of the grub entry, and it is done.
+This file should be placed in the `/boot` folder/partition of the machine
+and added as the `kernel` parameter of the corresponding GRUB entry.
 
 ### Create the pre-defined packages
 ```
