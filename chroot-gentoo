@@ -68,7 +68,8 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 	header "Setting up portage"
 
 	mkdir "${CHROOT}/etc/portage/repos.conf" "${CHROOT}${PORTDIR}"
-	cp -vr ${BASE_DIR}/helpers/portage/* "${CHROOT}/etc/portage/"
+	cp -vr ${BASE_DIR}/helpers/portage/* "${CHROOT}/etc/portage/" \
+		|| abort "Failed to copy some portage files"
 	test -e "${CHROOT}/etc/portage/make.conf" || abort "make.conf does not exist"
 	cp "${BASE_DIR}/helpers/gentoo-repos.conf" "${CHROOT}/etc/portage/repos.conf"
 
