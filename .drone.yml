@@ -19,4 +19,5 @@ steps:
 
   - name: Build/deploy
     commands:
+      - export PATH="/usr/local/sbin:/usr/local/bin:$PATH"
       - make all
