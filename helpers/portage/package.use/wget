@@ -1,0 +1,3 @@
+
+# wget-1.20.3 segfaults with USE=static; see #5
+<net-misc/wget-1.21 -static

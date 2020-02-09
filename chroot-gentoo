@@ -68,7 +68,9 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 	header "Setting up portage"
 
 	mkdir "${CHROOT}/etc/portage/repos.conf" "${CHROOT}${PORTDIR}"
-	cp "${BASE_DIR}/helpers/make.conf" "${CHROOT}/etc/portage/"
+	cp -vr ${BASE_DIR}/helpers/portage/* "${CHROOT}/etc/portage/" \
+		|| abort "Failed to copy some portage files"
+	test -e "${CHROOT}/etc/portage/make.conf" || abort "make.conf does not exist"
 	cp "${BASE_DIR}/helpers/gentoo-repos.conf" "${CHROOT}/etc/portage/repos.conf"
 
 	sed -i \
@@ -82,13 +84,18 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 		|| abort "emerge-webrsync failed. Will not be able to install required packages."
 	"$0" -c "emerge --sync --quiet"
 
+	header "mark eselect news as read"
+	"$0" -c "eselect news read --quiet"
+
 	header "Update portage"
 	"$0" -c "emerge --color=y -1u portage"
 
 	header "Updating packages for static binaries"
-	"$0" -c "emerge --color=y -1 net-misc/wget net-misc/openssh" \
+	echo "note: they are not really static for now; see #5"
+	"$0" -c "emerge --color=y -1v net-misc/wget net-misc/openssh" \
 		|| warning "wget and ssh may not be available!"
 
+	"$0" -c "wget --version" || abort "wget is probably broken"
 	header "Installing useful packages"
 	"$0" -c "emerge --color=y -1 \
 		sys-process/htop" \
@@ -169,6 +176,8 @@ fi
 ### Actual chroot call
 
 export PS1="(gentoo chroot) \w $ "
+# some packages, such as partclone, install stuff in */local/* dirs
+export PATH="/usr/local/sbin:/usr/local/bin:$PATH"
 chroot "${CHROOT}" /bin/sh "$@"
 ret=$?
 
