@@ -176,6 +176,8 @@ fi
 ### Actual chroot call
 
 export PS1="(gentoo chroot) \w $ "
+# some packages, such as partclone, install stuff in */local/* dirs
+export PATH="/usr/local/sbin:/usr/local/bin:$PATH"
 chroot "${CHROOT}" /bin/sh "$@"
 ret=$?
 
