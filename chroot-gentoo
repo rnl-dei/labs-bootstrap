@@ -101,6 +101,11 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 	header "Update portage"
 	"$0" -c "emerge --color=y -1u portage"
 
+	# Will fail if e.g. /dev is not properly mounted
+	header "Checking portage sanity"
+	"$0" -c "emerge --version" \
+		|| abort "Portage seems to be broken"
+
 	header "Updating packages for static binaries"
 	echo "note: they are not really static for now; see #5"
 	"$0" -c "emerge --color=y -1v net-misc/wget net-misc/openssh" \
