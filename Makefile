@@ -7,6 +7,7 @@ PACKAGES = scp parted mkfs.ext4 mkfs.fat lspci grub transmission tmux pigz partc
 
 # Packages that may be usefull but not are needed for the deploy
 EXTRA_PACKAGES = htop ping rsync screen strace bash amixer alsamixer mpv
+EXTRA_PACKAGES+= smartctl
 
 .PHONY: packages extra_packages initramfs all clean deepclean
 .PHONY: install
@@ -22,6 +23,7 @@ clean:
 
 deepclean:
 	$(RM) labs-bootstrap-initramfs labs-bootstrap-kernel
+	@! mount | grep `realpath gentoo-stage3` # abort if something is still mounted in the chroot
 	$(RM) -r gentoo-stage3
 
 initramfs:
@@ -70,6 +72,9 @@ screen:
 
 amixer:
 	@./create-package --name "$@" --dest $(PKG_DIR)/$@.tar.gz --pkg-hint "media-sound/alsa-utils"
+
+smartctl:
+	@./create-package --name "$@" --dest $(PKG_DIR)/$@.tar.gz --pkg-hint "sys-apps/smartmontools"
 
 # Not in the pre-defined packages because it takes long time to compile and obviosly
 # it is not really necessary to deploy the labs
