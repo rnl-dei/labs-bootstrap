@@ -3,6 +3,10 @@ kind: pipeline
 type: ssh
 name: default
 
+# don't run more than one job because they may lock each other or use too much RAM
+concurrency:
+  limit: 1
+
 clone:
   depth: 1
 
@@ -20,3 +24,11 @@ steps:
   - name: Build/deploy
     commands:
       - make all
+
+# the build takes a lot of time; don't do it on every commit
+trigger:
+  branch:
+    - master
+  event:
+    - push
+    - pull_request
