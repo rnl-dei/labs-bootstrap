@@ -14,9 +14,20 @@ NORMAL="\e[0m"
 BOLD="\e[1m"
 REVERSE="\e[7m"
 
+header_len=80
+header_line=$(printf "=%.0s" {1..300}) # 300 '=' chars
 function header() {
-	echo -e "\n${CYAN}  ============================================================\
-============================\r  ================  ${1}  ${NORMAL}"
+	# print a padded header line without using '\r' (which don't show up in CI logs)
+	local title=$@
+	local tlen=${#title}
+	local lpad=$(((header_len - 2 - tlen)/2))
+	local rpad=$(((header_len - 1 - tlen)/2))
+	if test $lpad -lt 2; then
+		# if the text is too big, prevent a negative/small pad
+		lpad=2
+		rpad=2
+	fi
+	printf "\n${CYAN}%*.*s %s %*.*s${NORMAL}\n" 0 "$lpad" $header_line "$title" 0 "$rpad" $header_line
 }
 
 function warning() {
