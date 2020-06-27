@@ -49,7 +49,7 @@ kernel:
 	./chroot-gentoo -c "emerge -uv gentoo-sources"
 	cp -f "helpers/labs-bootstrap-kernel-config" "$(CHROOT)/usr/src/linux/.config"
 	./chroot-gentoo -c "cd /usr/src/linux && make olddefconfig"
-	./chroot-gentoo -c "cd /usr/src/linux && make -j2"
+	./chroot-gentoo -c "cd /usr/src/linux && make -j3 -l3"
 	cp -f "$(CHROOT)/usr/src/linux/arch/x86_64/boot/bzImage" labs-bootstrap-kernel
 
 # Generic rule for packages
