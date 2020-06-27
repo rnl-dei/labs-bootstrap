@@ -21,7 +21,7 @@ steps:
     commands:
       - ln -s /mnt/storage/linux/ansible ansible_repo
 
-  - name: Build/deploy
+  - name: Build
     commands:
       - make all
 
