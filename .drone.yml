@@ -21,9 +21,21 @@ steps:
     commands:
       - ln -s /mnt/storage/linux/ansible ansible_repo
 
-  - name: Build
+  - name: Generate stage3
     commands:
-      - make all
+      - make stage3
+
+  - name: Generate initramfs
+    commands:
+      - make initramfs
+
+  - name: Generate packages
+    commands:
+      - make packages
+
+  - name: Generate kernel
+    commands:
+      - make kernel
 
 # the build takes a lot of time; don't do it on every commit
 trigger:
