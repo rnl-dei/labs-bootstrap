@@ -172,29 +172,33 @@ function mount_exists() {
 	mount | grep "${CHROOT}${1}" >/dev/null
 }
 
+function mount_or_abort() {
+	mount "$@" || abort "Failed to mount: $@"
+}
+
 if ! mount_exists /proc; then
-	mount -t proc /proc "${CHROOT}/proc"
+	mount_or_abort -t proc /proc "${CHROOT}/proc"
 fi
 
 if ! mount_exists /dev; then
-	mount -o bind /dev "${CHROOT}/dev"
+	mount_or_abort -o bind /dev "${CHROOT}/dev"
 fi
 
 if ! mount_exists /sys; then
-	mount -o bind /sys "${CHROOT}/sys"
+	mount_or_abort -o bind /sys "${CHROOT}/sys"
 fi
 
 if ! mount_exists /dev/pts; then
-	mount -o bind /dev/pts "${CHROOT}/dev/pts"
+	mount_or_abort -o bind /dev/pts "${CHROOT}/dev/pts"
 fi
 
 if ! mount_exists /dev/shm; then
-	mount -o bind /dev/shm "${CHROOT}/dev/shm"
+	mount_or_abort -o bind /dev/shm "${CHROOT}/dev/shm"
 fi
 
 # bind portage tmpfs if available in the host system
 if test -e "${CHROOT}/var/tmp/portage" && mount | grep /var/tmp/portage >/dev/null; then
-	mount -o bind /var/tmp/portage "${CHROOT}/var/tmp/portage"
+	mount_or_abort -o bind /var/tmp/portage "${CHROOT}/var/tmp/portage"
 fi
 
 ### Actual chroot call
