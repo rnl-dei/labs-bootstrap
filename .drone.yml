@@ -1,0 +1,46 @@
+---
+kind: pipeline
+type: ssh
+name: default
+
+# don't run more than one job because they may lock each other or use too much RAM
+concurrency:
+  limit: 1
+
+clone:
+  depth: 1
+
+server:
+  host: dolly
+  user: root
+  ssh_key:
+    from_secret: dolly_key
+
+steps:
+  - name: Relink ansible_repo to ansible in dolly
+    commands:
+      - ln -s /mnt/storage/linux/ansible ansible_repo
+
+  - name: Generate stage3
+    commands:
+      - make stage3
+
+  - name: Generate initramfs
+    commands:
+      - make initramfs
+
+  - name: Generate packages
+    commands:
+      - make packages
+
+  - name: Generate kernel
+    commands:
+      - make kernel
+
+# the build takes a lot of time; don't do it on every commit
+trigger:
+  branch:
+    - master
+  event:
+    - push
+    - pull_request

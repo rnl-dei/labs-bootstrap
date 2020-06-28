@@ -1,5 +1,5 @@
 WEB_DIR = "/var/www/rnlinux_deploy"
-PKG_DIR = "${WEB_DIR}/packages"
+PKG_DIR = "packages"
 CHROOT = "gentoo-stage3"
 
 # Pre-defined packages. This will be automatically created when running 'make packages' or 'make all'
@@ -10,6 +10,7 @@ EXTRA_PACKAGES = htop ping rsync screen strace bash amixer alsamixer mpv
 EXTRA_PACKAGES+= smartctl
 
 .PHONY: packages extra_packages initramfs all clean deepclean
+.PHONY: install
 
 help:
 	@echo "Run 'make all' if you really want to build everything."
@@ -27,11 +28,16 @@ deepclean:
 
 initramfs:
 	@./create-initramfs
-	cp labs-bootstrap-initramfs ${WEB_DIR}
 
 packages: $(PACKAGES)
 
 extra_packages: $(EXTRA_PACKAGES)
+
+# not adding dependencies so they're not compiled twice
+install:
+	cp labs-bootstrap-initramfs ${WEB_DIR}
+	cp labs-bootstrap-kernel ${WEB_DIR}
+	cp -r ${PKG_DIR} ${WEB_DIR}/
 
 # By running any command the script will generate the stage3 if it doesn't exist
 # This doesn't need to be in target 'all' or as a dependency since it is called by the other scripts
@@ -43,9 +49,8 @@ kernel:
 	./chroot-gentoo -c "emerge -uv gentoo-sources"
 	cp -f "helpers/labs-bootstrap-kernel-config" "$(CHROOT)/usr/src/linux/.config"
 	./chroot-gentoo -c "cd /usr/src/linux && make olddefconfig"
-	./chroot-gentoo -c "cd /usr/src/linux && make -j2"
+	./chroot-gentoo -c "cd /usr/src/linux && make -j3 -l3"
 	cp -f "$(CHROOT)/usr/src/linux/arch/x86_64/boot/bzImage" labs-bootstrap-kernel
-	cp labs-bootstrap-kernel ${WEB_DIR}
 
 # Generic rule for packages
 %:
@@ -99,9 +104,12 @@ transmission:
 PARTCLONE_VERSION = 0.3.11
 partclone.ntfs:
 	./chroot-gentoo -c "emerge -uv ntfs3g"
-	./chroot-gentoo -c "wget https://github.com/Thomas-Tsai/partclone/archive/$(PARTCLONE_VERSION).tar.gz -O partclone.tar.gz"
+	./chroot-gentoo -c "wget https://github.com/Thomas-Tsai/partclone/archive/$(PARTCLONE_VERSION).tar.gz -O partclone.tar.gz --progress=dot:mega"
 	./chroot-gentoo -c "tar xf partclone.tar.gz"
-	./chroot-gentoo -c "cd partclone-$(PARTCLONE_VERSION) && ./autogen && ./configure --enable-ntfs && make install"
+	./chroot-gentoo -c "cd partclone-$(PARTCLONE_VERSION) \
+		&& ./autogen \
+		&& ./configure `test -n "$$CI" && echo --quiet` --enable-ntfs \
+		&& make install"
 	@./create-package --name "$@" --dest $(PKG_DIR)/$@.tar.gz --create-dir /var/log
 
 mkfs.fat:

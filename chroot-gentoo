@@ -14,9 +14,20 @@ NORMAL="\e[0m"
 BOLD="\e[1m"
 REVERSE="\e[7m"
 
+header_len=80
+header_line=$(printf "=%.0s" {1..300}) # 300 '=' chars
 function header() {
-	echo -e "\n${CYAN}  ============================================================\
-============================\r  ================  ${1}  ${NORMAL}"
+	# print a padded header line without using '\r' (which don't show up in CI logs)
+	local title=$@
+	local tlen=${#title}
+	local lpad=$(((header_len - 2 - tlen)/2))
+	local rpad=$(((header_len - 1 - tlen)/2))
+	if test $lpad -lt 2; then
+		# if the text is too big, prevent a negative/small pad
+		lpad=2
+		rpad=2
+	fi
+	printf "\n${CYAN}%*.*s %s %*.*s${NORMAL}\n" 0 "$lpad" $header_line "$title" 0 "$rpad" $header_line
 }
 
 function warning() {
@@ -47,7 +58,7 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 
 	header "Downloading stage3"
 	echo "$stage3_url" > "${CHROOT}/stage3.txt"
-	wget "$stage3_url" -O "${CHROOT}/stage3.tar.bz2"
+	wget "$stage3_url" -O "${CHROOT}/stage3.tar.bz2" --progress=dot:giga
 
 	header "Extracting stage3"
 	tar --totals --checkpoint=20000 --checkpoint-action=echo=%T -xf \
@@ -68,7 +79,17 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 	header "Setting up portage"
 
 	mkdir "${CHROOT}/etc/portage/repos.conf" "${CHROOT}${PORTDIR}"
-	cp "${BASE_DIR}/helpers/make.conf" "${CHROOT}/etc/portage/"
+	cp -vr ${BASE_DIR}/helpers/portage/* "${CHROOT}/etc/portage/" \
+		|| abort "Failed to copy some portage files"
+	test -e "${CHROOT}/etc/portage/make.conf" || abort "make.conf does not exist"
+
+	if test -n "$CI"; then
+		# the CI env is defined by drone
+		# make CI builds quiet(er)
+		warning "CI build detected (CI=$CI). Making portage quiet by default."
+		echo 'EMERGE_DEFAULT_OPTS="$EMERGE_DEFAULT_OPTS --quiet --quiet-build=y" # quiet CI build' | tee -a ${CHROOT}/etc/portage/make.conf
+	fi
+
 	cp "${BASE_DIR}/helpers/gentoo-repos.conf" "${CHROOT}/etc/portage/repos.conf"
 
 	sed -i \
@@ -80,15 +101,25 @@ if [ ! -x "${CHROOT}/sbin/init" ]; then
 
 	"$0" -c "emerge-webrsync" \
 		|| abort "emerge-webrsync failed. Will not be able to install required packages."
-	"$0" -c "emerge --sync"
+	"$0" -c "emerge --sync --quiet"
+
+	header "mark eselect news as read"
+	"$0" -c "eselect news read --quiet"
 
 	header "Update portage"
 	"$0" -c "emerge --color=y -1u portage"
 
+	# Will fail if e.g. /dev is not properly mounted
+	header "Checking portage sanity"
+	"$0" -c "emerge --version" \
+		|| abort "Portage seems to be broken"
+
 	header "Updating packages for static binaries"
-	"$0" -c "emerge --color=y -1 net-misc/wget net-misc/openssh" \
+	echo "note: they are not really static for now; see #5"
+	"$0" -c "emerge --color=y -1v net-misc/wget net-misc/openssh" \
 		|| warning "wget and ssh may not be available!"
 
+	"$0" -c "wget --version" || abort "wget is probably broken"
 	header "Installing useful packages"
 	"$0" -c "emerge --color=y -1 \
 		sys-process/htop" \
@@ -141,29 +172,40 @@ function mount_exists() {
 	mount | grep "${CHROOT}${1}" >/dev/null
 }
 
+function mount_or_abort() {
+	mount "$@" || abort "Failed to mount: $@"
+}
+
 if ! mount_exists /proc; then
-	mount -t proc /proc "${CHROOT}/proc"
+	mount_or_abort -t proc /proc "${CHROOT}/proc"
 fi
 
 if ! mount_exists /dev; then
-	mount -o bind /dev "${CHROOT}/dev"
+	mount_or_abort -o bind /dev "${CHROOT}/dev"
 fi
 
 if ! mount_exists /sys; then
-	mount -o bind /sys "${CHROOT}/sys"
+	mount_or_abort -o bind /sys "${CHROOT}/sys"
 fi
 
 if ! mount_exists /dev/pts; then
-	mount -o bind /dev/pts "${CHROOT}/dev/pts"
+	mount_or_abort -o bind /dev/pts "${CHROOT}/dev/pts"
 fi
 
 if ! mount_exists /dev/shm; then
-	mount -o bind /dev/shm "${CHROOT}/dev/shm"
+	mount_or_abort -o bind /dev/shm "${CHROOT}/dev/shm"
+fi
+
+# bind portage tmpfs if available in the host system
+if test -e "${CHROOT}/var/tmp/portage" && mount | grep /var/tmp/portage >/dev/null; then
+	mount_or_abort -o bind /var/tmp/portage "${CHROOT}/var/tmp/portage"
 fi
 
 ### Actual chroot call
 
 export PS1="(gentoo chroot) \w $ "
+# some packages, such as partclone, install stuff in */local/* dirs
+export PATH="/usr/local/sbin:/usr/local/bin:$PATH"
 chroot "${CHROOT}" /bin/sh "$@"
 ret=$?
 
@@ -175,6 +217,7 @@ if [ -z "${KEEP_MOUNTS}" ] && ! is_another_chroot_is_running ; then
 	umount -f "${CHROOT}/dev/shm"
 	umount -f "${CHROOT}/dev"
 	umount -f "${CHROOT}/sys"
+	umount -f "${CHROOT}/var/tmp/portage" -q
 fi
 
 # important so we can abort if something fails

@@ -12,6 +12,7 @@ Only one command is needed to recreate everything as before.
 $ git clone <this repo URL>
 $ cd labs-bootstrap
 $ make all
+$ make install
 ```
 
 This will take a while since it first has to download and setup a new
@@ -34,7 +35,8 @@ $ cd labs-boostrap
 $ make initramfs
 ```
 This should create the file `labs-bootstrap-initramfs`.
-Put this in the /boot of the machine, and as the `initrd parameter` of the grub entry, and it is done.
+This file should be placed in the `/boot` folder/partition of the machine.
+Don't forget to add it to the `initrd` parameter of the corresponding GRUB entry.
 
 ### Create a new kernel
 
@@ -42,23 +44,28 @@ Put this in the /boot of the machine, and as the `initrd parameter` of the grub 
 $ make kernel
 ```
 This should create the file `labs-bootstrap-kernel`.
-Put this in the /boot of the machine, and as the `kernel parameter` of the grub entry, and it is done.
+This file should be placed in the `/boot` folder/partition of the machine
+and added as the `kernel` parameter of the corresponding GRUB entry.
 
 ### Create the pre-defined packages
 ```
 $ make packages
 ```
-This will create all already pre-defined packages in `/var/www/rnlinux_deploy/webroot/packages/`.
+This will create all pre-defined packages.
 The initramfs will get the packages from there automatically, nothing more needed to do,
 given that a web server is already working to serve files from there.
+
+Don't forget to copy the packages to the webroot dir using `make install`.
 
 ### Create a new package
 For example, to create a package for `rsync`, just run the following:
 ```
 $ make rsync
 ...
-/var/www/rnlinux_deploy/webroot/packages/rsync.tar.gz created, enjoy!
+packages/rsync.tar.gz created, enjoy!
 ```
+Then, copy the package to the webroot packages dir.
+
 The package should now be available for the initramfs like with pre-defined packages.
 
 If the program is not already installed on the stage3,
@@ -191,6 +198,7 @@ List of all available Makefile targets.
  * **stage3** - Checks if the stage3 is fine, creating a new one if it doesn't.
  * **kernel** - Compiles the kernel to be used by the initramfs. Generates `labs-bootstrap-kernel`.
  * **all** - Creates both initramfs, packages and kernel.
+ * **install** - Copies the generated files (initramfs, kernel and packages) into the deploy webroot folder.
 
 The pre-defined packages include the packages that have specific rules because of
 extra files, and other packages that are considered useful to have available like

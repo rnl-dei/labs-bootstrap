@@ -88,6 +88,10 @@ if [ -z "${EXE}" ]; then
 	else
 		info "Found matching package ${BOLD}${package}${NORMAL}."
 		count=5
+		if test -n "$CI"; then
+			# CI build... no point in waiting
+			count=0
+		fi
 		warning "Installing it in ${count} seconds, press Ctrl+C to abort!"
 		while ((count-- > 0)); do
 			echo -n "$((count+1))... "
